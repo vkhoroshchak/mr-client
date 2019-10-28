@@ -1,17 +1,17 @@
-# TODO: order imports
+import os
+
+from config import config_provider
 from filesystem import service
 from mapreduce.commands import (
     append_command,
+    clear_data_command,
+    get_file_command,
+    get_result_of_key_command,
     make_file_command,
     map_reduce_command,
     refresh_table_command,
     write_command,
-    clear_data_command,
-    get_file_command,
-    get_result_of_key_command
 )
-from config import config_provider
-import os
 
 
 # TODO: refactor

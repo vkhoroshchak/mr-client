@@ -2,34 +2,25 @@ import json
 import os.path
 
 
-# TODO: USE CONTEXT MANAGERS (please)
-
 class ConfigProvider:
+    @staticmethod
+    def get_data(file_path):
+        with open(os.path.join(os.path.dirname(__file__), file_path)) as json_data:
+            data = json.load(json_data)
+            return data
 
     @staticmethod
     def get_arbiter_address(file_path):
-        json_data = open(os.path.join(os.path.dirname(__file__), file_path))
-        data = json.load(json_data)
-        json_data.close()
-        return data["arbiter_address"]
+        return ConfigProvider.get_data(file_path)['arbiter_address']
 
     @staticmethod
     def get_access_token(file_path):
-        json_data = open(os.path.join(os.path.dirname(__file__), file_path))
-        data = json.load(json_data)
-        json_data.close()
-        return data["access_token"]
+        return ConfigProvider.get_data(file_path)['access_token']
 
     @staticmethod
     def get_map_key_delimiter(file_path):
-        json_data = open(os.path.join(os.path.dirname(__file__), file_path))
-        data = json.load(json_data)
-        json_data.close()
-        return data['map_reduce']['map_key_delimiter']
+        return ConfigProvider.get_data(file_path)['map_reduce']['map_key_delimiter']
 
     @staticmethod
     def get_field_delimiter(file_path):
-        json_data = open(os.path.join(os.path.dirname(__file__), file_path))
-        data = json.load(json_data)
-        json_data.close()
-        return data['map_reduce']['field_delimiter']
+        return ConfigProvider.get_data(file_path)['map_reduce']['field_delimiter']
