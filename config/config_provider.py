@@ -2,6 +2,8 @@ import json
 import os.path
 
 
+# TODO: USE CONTEXT MANAGERS (please)
+
 class ConfigProvider:
 
     @staticmethod

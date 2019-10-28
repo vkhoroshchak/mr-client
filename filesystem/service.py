@@ -1,9 +1,12 @@
 # Different service ops... 
 # like reducing the file segments count on one data node,
 # removing failed segments etc...
-from config import config_provider
 import os
 
+from config import config_provider
+
+
+# TODO: use context managers and literals
 
 def split_file(file, m):
     f_d = config_provider.ConfigProvider.get_field_delimiter(os.path.join('..', 'config', 'json', 'client_config.json'))
@@ -17,6 +20,7 @@ def split_file(file, m):
 
     # print(res)
     return res
+
 
 def write_to_file(content, file_name):
     print(content)
