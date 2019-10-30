@@ -2,7 +2,6 @@ from mapreduce.commands import base_command
 
 
 # TODO: add validation
-# TODO: use literals
 class WriteCommand(base_command.BaseCommand):
 
     def __init__(self):
@@ -22,7 +21,6 @@ class WriteCommand(base_command.BaseCommand):
 
     def send(self):
         self.validate()
-        data = dict()
-        data['write'] = self._data
+        data = {'write': self._data}
         super(WriteCommand, self).__init__(data)
         return super(WriteCommand, self).send(self._data['write']['data_node_ip'])

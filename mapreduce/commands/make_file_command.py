@@ -2,7 +2,6 @@ from mapreduce.commands import base_command
 
 
 # TODO: add validation
-# TODO: use literals
 class MakeFileCommand(base_command.BaseCommand):
 
     def __init__(self):
@@ -16,7 +15,6 @@ class MakeFileCommand(base_command.BaseCommand):
 
     def send(self):
         self.validate()
-        data = dict()
-        data['make_file'] = self._data
+        data = {'make_file': self._data}
         super(MakeFileCommand, self).__init__(data)
         return super(MakeFileCommand, self).send()

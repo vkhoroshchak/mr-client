@@ -72,13 +72,10 @@ class TaskRunner:
 
         return rtc.send()
 
-    # TODO: replace counter with enumerate()
     @staticmethod
     def main_func(file_name, distribution, dest):
         splitted_file = service.split_file(file_name, distribution)
-        counter = 0
-        for fragment in splitted_file:
-            counter += 1
+        for counter, fragment in enumerate(splitted_file):
             segment_name = "f" + str(counter)
             ip = TaskRunner.append(dest, fragment)
             TaskRunner.write(dest + os.sep + segment_name, fragment, ip)
@@ -94,15 +91,14 @@ class TaskRunner:
     def send_info():
         pass
 
-    # TODO: refactor
     @staticmethod
     def get_file(file_name, ip=None):
-        gf = get_file_command.GetFileCommand()
-        gf.set_file_name(file_name)
-        if ip is None:
-            return gf.send()
+        get_file = get_file_command.GetFileCommand()
+        get_file.set_file_name(file_name)
+        if not ip:
+            return get_file.send()
         else:
-            return gf.send(ip)
+            return get_file.send(ip)
 
     # TODO: refactor
     @staticmethod

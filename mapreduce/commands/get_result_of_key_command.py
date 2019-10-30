@@ -2,7 +2,6 @@ from mapreduce.commands import base_command
 
 
 # TODO: add validation
-# TODO: use literals
 class GetResultOfKeyCommand(base_command.BaseCommand):
 
     def __init__(self):
@@ -22,8 +21,7 @@ class GetResultOfKeyCommand(base_command.BaseCommand):
 
     def send(self, ip=None):
         self.validate()
-        data = dict()
-        data['get_result_of_key'] = self._data
+        data = {'get_result_of_key': self._data}
         super(GetResultOfKeyCommand, self).__init__(data)
         if not ip:
             return super(GetResultOfKeyCommand, self).send()

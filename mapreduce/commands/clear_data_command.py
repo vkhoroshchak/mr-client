@@ -2,7 +2,6 @@ from mapreduce.commands import base_command
 
 
 # TODO: add validation
-# TODO: use literals
 
 class ClearDataCommand(base_command.BaseCommand):
 
@@ -20,7 +19,6 @@ class ClearDataCommand(base_command.BaseCommand):
 
     def send(self):
         self.validate()
-        data = dict()
-        data['clear_data'] = self._data
+        data = {'clear_data': self._data}
         super(ClearDataCommand, self).__init__(data)
         return super(ClearDataCommand, self).send()
