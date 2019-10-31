@@ -14,7 +14,10 @@ class AppendCommand(base_command.BaseCommand):
         self._data["file_name"] = file_name
 
     def validate(self):
-        pass
+        if not self._data['segment']:
+            raise AttributeError('Segment is not specified!')
+        if not self._data['file_name']:
+            raise AttributeError('Destination file is not specified!')
 
     def send(self):
         self.validate()

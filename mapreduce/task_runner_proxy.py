@@ -100,14 +100,13 @@ class TaskRunner:
         else:
             return get_file.send(ip)
 
-    # TODO: refactor
     @staticmethod
     def clear_data(folder_name):
-        cdc = clear_data_command.ClearDataCommand()
-        cdc.set_folder_name(folder_name.split(',')[0])
-        vh = folder_name.split(",")[1]
-        cdc.set_remove_all_data(bool(int(vh)))
-        return cdc.send()
+        clear_data = clear_data_command.ClearDataCommand()
+        folder_name_arr = folder_name.split(',')
+        clear_data.set_folder_name(folder_name_arr[0])
+        clear_data.set_remove_all_data(bool(int(folder_name_arr[1])))
+        return clear_data.send()
 
     @staticmethod
     def run_map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter, is_server_source_file,

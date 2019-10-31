@@ -17,7 +17,10 @@ class RefreshTableCommand(base_command.BaseCommand):
         self._data['segment_name'] = segment_name
 
     def validate(self):
-        pass
+        if not self._data['file_name']:
+            raise AttributeError('File name is not specified!')
+        if not self._data['segment_name']:
+            raise AttributeError('Segment name is not specified!')
 
     def send(self):
         self.validate()

@@ -11,7 +11,8 @@ class MakeFileCommand(base_command.BaseCommand):
         self._data['destination_file'] = destination_file
 
     def validate(self):
-        pass
+        if not self._data['destination_file']:
+            raise AttributeError('Destination file is not specified!')
 
     def send(self):
         self.validate()

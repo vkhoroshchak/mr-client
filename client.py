@@ -21,7 +21,7 @@ args = parser.parse_args()
 
 # TODO: refactor
 def cli_parser(tr):
-    if args.pfc is not None:
+    if args.pfc:
         return tr.push_file_on_cluster(args.pfc)
     if args.rem:
         print("CLEAR_DATA_STARTED")
@@ -32,21 +32,21 @@ def cli_parser(tr):
         print("GET_KEY_FROM_CLUSTER")
         return tr.get_result_of_key(args.rk, args.dest)
 
-    if args.mf is None:
+    if not args.mf:
         is_mapper_in_file = False
         mapper = args.m
     else:
         is_mapper_in_file = True
         mapper = args.mf
 
-    if args.rf is None:
+    if not args.rf:
         is_reducer_in_file = False
         reducer = args.r
     else:
         is_reducer_in_file = True
         reducer = args.rf
 
-    if args.src is None:
+    if not args.src:
         source_file = args.ssrc
         is_server_source_file = True
     else:

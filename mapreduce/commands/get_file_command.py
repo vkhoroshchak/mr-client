@@ -17,7 +17,4 @@ class GetFileCommand(base_command.BaseCommand):
         self.validate()
         data = {'get_file': self._data}
         super(GetFileCommand, self).__init__(data)
-        if not ip:
-            return super(GetFileCommand, self).send()
-        else:
-            return super(GetFileCommand, self).send(ip)
+        return super(GetFileCommand, self).send(ip) if ip else super(GetFileCommand, self).send()

@@ -17,7 +17,12 @@ class GetResultOfKeyCommand(base_command.BaseCommand):
         self._data['field_delimiter'] = field_delimiter
 
     def validate(self):
-        pass
+        if not self._data['key']:
+            raise AttributeError('Key is not specified!')
+        if not self._data['file_name']:
+            raise AttributeError('File name is not specified!')
+        if not self._data['field_delimiter']:
+            raise AttributeError('Field delimiter is not specified!')
 
     def send(self, ip=None):
         self.validate()

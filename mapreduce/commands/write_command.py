@@ -17,7 +17,12 @@ class WriteCommand(base_command.BaseCommand):
         self._data['data_node_ip'] = data_node_ip
 
     def validate(self):
-        pass
+        if not self._data['segment']:
+            raise AttributeError('Segment is not specified!')
+        if not self._data['file_name']:
+            raise AttributeError('File name is not specified!')
+        if not self._data['data_node_ip']:
+            raise AttributeError('Data node ip is not specified!')
 
     def send(self):
         self.validate()

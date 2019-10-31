@@ -56,13 +56,13 @@ class MapReduceCommand(base_command.BaseCommand):
         self._data['destination_file'] = encoded
 
     def validate(self):
-        if self._data['mapper'] is None:
+        if not self._data['mapper']:
             raise AttributeError('Mapper is empty!')
-        if self._data['reducer'] is None:
+        if not self._data['reducer']:
             raise AttributeError('Reducer is empty!')
-        if not 'source_file' in self._data and not 'server_source_file' in self._data:
+        if 'source_file' and 'server_source_file' not in self._data:
             raise AttributeError('Source file in not mentioned!')
-        if self._data['destination_file'] is None:
+        if not self._data['destination_file']:
             raise AttributeError('Destination file in not mentioned!')
 
     def send(self):

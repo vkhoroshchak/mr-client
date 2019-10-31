@@ -11,11 +11,12 @@ class ClearDataCommand(base_command.BaseCommand):
     def set_folder_name(self, folder_name):
         self._data['folder_name'] = folder_name
 
-    def set_remove_all_data(self, remove_all_data):
+    def set_remove_all_data(self, remove_all_data): # = 0 or = 1
         self._data['remove_all_data'] = bool(int(remove_all_data))
 
     def validate(self):
-        pass
+        if not self._data['folder_name']:
+            raise AttributeError('Folder name is not specified!')
 
     def send(self):
         self.validate()
