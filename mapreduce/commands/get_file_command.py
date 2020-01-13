@@ -15,6 +15,5 @@ class GetFileCommand(base_command.BaseCommand):
 
     def send(self, ip=None):
         self.validate()
-        data = {'get_file': self._data}
-        super(GetFileCommand, self).__init__(data)
+        super(GetFileCommand, self).__init__(self._data)
         return super(GetFileCommand, self).send(ip) if ip else super(GetFileCommand, self).send()

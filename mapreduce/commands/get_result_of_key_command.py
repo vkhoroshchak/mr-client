@@ -26,8 +26,7 @@ class GetResultOfKeyCommand(base_command.BaseCommand):
 
     def send(self, ip=None):
         self.validate()
-        data = {'get_result_of_key': self._data}
-        super(GetResultOfKeyCommand, self).__init__(data)
+        super(GetResultOfKeyCommand, self).__init__(self._data)
         if not ip:
             return super(GetResultOfKeyCommand, self).send()
         else:

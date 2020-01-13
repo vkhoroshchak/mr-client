@@ -60,13 +60,12 @@ class MapReduceCommand(base_command.BaseCommand):
             raise AttributeError('Mapper is empty!')
         if not self._data['reducer']:
             raise AttributeError('Reducer is empty!')
-        if 'source_file' and 'server_source_file' not in self._data:
-            raise AttributeError('Source file in not mentioned!')
+        # if 'source_file' and 'server_source_file' not in self._data:
+        #     raise AttributeError('Source file in not mentioned!')
         if not self._data['destination_file']:
             raise AttributeError('Destination file in not mentioned!')
 
     def send(self):
         self.validate()
-        data = {'map_reduce': self._data}
-        super(MapReduceCommand, self).__init__(data)
+        super(MapReduceCommand, self).__init__(self._data)
         return super(MapReduceCommand, self).send()

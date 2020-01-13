@@ -26,6 +26,5 @@ class WriteCommand(base_command.BaseCommand):
 
     def send(self):
         self.validate()
-        data = {'write': self._data}
-        super(WriteCommand, self).__init__(data)
+        super(WriteCommand, self).__init__(self._data)
         return super(WriteCommand, self).send(self._data['write']['data_node_ip'])

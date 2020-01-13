@@ -21,6 +21,5 @@ class AppendCommand(base_command.BaseCommand):
 
     def send(self):
         self.validate()
-        data = {'append': self._data}
-        super(AppendCommand, self).__init__(data)
+        super(AppendCommand, self).__init__(self._data)
         return super(AppendCommand, self).send()

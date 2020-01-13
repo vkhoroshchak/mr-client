@@ -136,6 +136,7 @@ class TaskRunner:
     def get_result_of_key(key, file_name):
         field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
             os.path.join('..', 'config', 'json', 'client_config.json'))
+
         grk = get_result_of_key_command.GetResultOfKeyCommand()
         grk.set_key(key)
         grk.set_file_name(file_name)
