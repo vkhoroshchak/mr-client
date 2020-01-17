@@ -3,8 +3,7 @@ import base64
 from mapreduce.commands import base_command
 
 
-# TODO: refactor validation
-class MapReduceCommand(base_command.BaseCommand):
+class MapCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
@@ -20,18 +19,6 @@ class MapReduceCommand(base_command.BaseCommand):
         encoded = base64.b64encode(bytes(content, 'utf-8'))
         decoded = encoded.decode('utf-8')
         self._data['mapper'] = decoded
-
-    def set_reducer_from_file(self, path):
-        with open(path, 'rb') as file:
-            file_content = file.read()
-            encoded = base64.b64encode(file_content)
-            decoded = encoded.decode('utf-8')
-            self._data['reducer'] = decoded
-
-    def set_reducer(self, content):
-        encoded = base64.b64encode(bytes(content, 'utf-8'))
-        decoded = encoded.decode('utf-8')
-        self._data['reducer'] = decoded
 
     # check if method to get (map)_key_delimiter from file is necessary
     def set_key_delimiter(self, key_delimiter):
@@ -58,8 +45,6 @@ class MapReduceCommand(base_command.BaseCommand):
     def validate(self):
         if not self._data['mapper']:
             raise AttributeError('Mapper is empty!')
-        if not self._data['reducer']:
-            raise AttributeError('Reducer is empty!')
         # if 'source_file' and 'server_source_file' not in self._data:
         #     raise AttributeError('Source file in not mentioned!')
         if not self._data['destination_file']:
@@ -67,5 +52,5 @@ class MapReduceCommand(base_command.BaseCommand):
 
     def send(self):
         self.validate()
-        super(MapReduceCommand, self).__init__(self._data)
-        return super(MapReduceCommand, self).send()
+        super(MapCommand, self).__init__(self._data)
+        return super(MapCommand, self).send('map')

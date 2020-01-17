@@ -8,7 +8,8 @@ from mapreduce.commands import (
     get_file_command,
     get_result_of_key_command,
     make_file_command,
-    map_reduce_command,
+    map_command,
+    reduce_command,
     refresh_table_command,
     write_command,
 )
@@ -18,33 +19,75 @@ from mapreduce.commands import (
 class TaskRunner:
 
     @staticmethod
-    def map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter, is_server_source_file,
-                   source_file,
-                   destination_file):
-        mrc = map_reduce_command.MapReduceCommand()
+    def map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file, source_file, destination_file):
+        mc = map_command.MapCommand()
         if is_mapper_in_file is False:
-            mrc.set_mapper(mapper)
+            mc.set_mapper(mapper)
         else:
-            mrc.set_mapper_from_file(mapper)
-
-        if is_reducer_in_file is False:
-            mrc.set_reducer(reducer)
-        else:
-            mrc.set_reducer_from_file(reducer)
+            mc.set_mapper_from_file(mapper)
 
         if is_server_source_file is True:
-            mrc.set_server_source_file(source_file)
+            mc.set_server_source_file(source_file)
         else:
-            mrc.set_source_file(source_file)
+            mc.set_source_file(source_file)
 
-        mrc.set_key_delimiter(key_delimiter)
+        mc.set_key_delimiter(key_delimiter)
         field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
             os.path.join('..', 'config', 'json', 'client_config.json'))
 
-        mrc.set_field_delimiter(field_delimiter)
-        mrc.set_destination_file(destination_file)
+        mc.set_field_delimiter(field_delimiter)
+        mc.set_destination_file(destination_file)
 
-        return mrc.send()
+        return mc.send()
+
+    @staticmethod
+    def reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file, destination_file):
+        rc = reduce_command.ReduceCommand()
+
+        if is_reducer_in_file is False:
+            rc.set_reducer(reducer)
+        else:
+            rc.set_reducer_from_file(reducer)
+
+        if is_server_source_file is True:
+            rc.set_server_source_file(source_file)
+        else:
+            rc.set_source_file(source_file)
+
+        rc.set_key_delimiter(key_delimiter)
+
+        rc.set_destination_file(destination_file)
+
+        return rc.send()
+
+    # @staticmethod
+    # def map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter, is_server_source_file,
+    #                source_file,
+    #                destination_file):
+    #     mrc = reduce_command.MapReduceCommand()
+    #     if is_mapper_in_file is False:
+    #         mrc.set_mapper(mapper)
+    #     else:
+    #         mrc.set_mapper_from_file(mapper)
+    #
+    #     if is_reducer_in_file is False:
+    #         mrc.set_reducer(reducer)
+    #     else:
+    #         mrc.set_reducer_from_file(reducer)
+    #
+    #     if is_server_source_file is True:
+    #         mrc.set_server_source_file(source_file)
+    #     else:
+    #         mrc.set_source_file(source_file)
+    #
+    #     mrc.set_key_delimiter(key_delimiter)
+    #     field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
+    #         os.path.join('..', 'config', 'json', 'client_config.json'))
+    #
+    #     mrc.set_field_delimiter(field_delimiter)
+    #     mrc.set_destination_file(destination_file)
+    #
+    #     return mrc.send()
 
     @staticmethod
     def append(file_name, segment):
@@ -119,6 +162,10 @@ class TaskRunner:
             print("APPEND_AND_WRITE_PHASE")
             TaskRunner.main_func(source_file, distribution, destination_file)
             print("APPEND_AND_WRITE_PHASE_FINISHED")
+        print("MAP_STARTED")
+        mapped_folder_name = TaskRunner.map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file,
+                                            source_file, destination_file)
+        print("MAP_FINISHED")
         # print("MAP_REDUCE_STARTED")
         # TaskRunner.map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter,
         #                       is_server_source_file, source_file,
