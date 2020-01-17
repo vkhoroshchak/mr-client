@@ -8,13 +8,13 @@ class MakeFileCommand(base_command.BaseCommand):
         self._data = {}
 
     def set_destination_file(self, destination_file):
-        self._data['destination_file'] = destination_file
+        self._data['file_name'] = destination_file
 
     def validate(self):
-        if not self._data['destination_file']:
-            raise AttributeError('Destination file is not specified!')
+        if not self._data['file_name']:
+            raise AttributeError('File_name is not specified!')
 
     def send(self):
         self.validate()
         super(MakeFileCommand, self).__init__(self._data)
-        return super(MakeFileCommand, self).send()
+        return super(MakeFileCommand, self).send('make_file')
