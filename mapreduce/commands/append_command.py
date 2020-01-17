@@ -22,4 +22,4 @@ class AppendCommand(base_command.BaseCommand):
     def send(self):
         self.validate()
         super(AppendCommand, self).__init__(self._data)
-        return super(AppendCommand, self).send()
+        return super(AppendCommand, self).send('append')

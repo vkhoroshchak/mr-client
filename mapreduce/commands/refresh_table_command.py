@@ -25,4 +25,4 @@ class RefreshTableCommand(base_command.BaseCommand):
     def send(self):
         self.validate()
         super(RefreshTableCommand, self).__init__(self._data)
-        return super(RefreshTableCommand, self).send()
+        return super(RefreshTableCommand, self).send('refresh_table')

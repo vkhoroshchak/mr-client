@@ -56,10 +56,10 @@ class TaskRunner:
     @staticmethod
     def write(file_name, segment, data_node_ip):
         wc = write_command.WriteCommand()
+
         wc.set_segment(segment)
         wc.set_file_name(file_name)
-
-        wc.set_data_node_ip(data_node_ip['data_node_ip'])
+        wc.set_data_node_ip(data_node_ip)
 
         return wc.send()
 
@@ -67,7 +67,7 @@ class TaskRunner:
     def refresh_table(file_name, ip, segment_name):
         rtc = refresh_table_command.RefreshTableCommand()
         rtc.set_file_name(file_name)
-        rtc.set_ip(ip['data_node_ip'])
+        rtc.set_ip(ip)
         rtc.set_segment_name(segment_name)
 
         return rtc.send()
@@ -77,7 +77,7 @@ class TaskRunner:
         splitted_file = service.split_file(file_name, distribution)
         for counter, fragment in enumerate(splitted_file):
             segment_name = "f" + str(counter)
-            ip = TaskRunner.append(dest, fragment)
+            ip = TaskRunner.append(dest, fragment)['data_node_ip']
             TaskRunner.write(dest + os.sep + segment_name, fragment, ip)
             TaskRunner.refresh_table(dest, ip, segment_name)
 
@@ -119,12 +119,12 @@ class TaskRunner:
             print("APPEND_AND_WRITE_PHASE")
             TaskRunner.main_func(source_file, distribution, destination_file)
             print("APPEND_AND_WRITE_PHASE_FINISHED")
-        print("MAP_REDUCE_STARTED")
-        TaskRunner.map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter,
-                              is_server_source_file, source_file,
-                              destination_file)
-        print("MAP_REDUCE_FINISHED")
-        print("COMPLETED!")
+        # print("MAP_REDUCE_STARTED")
+        # TaskRunner.map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter,
+        #                       is_server_source_file, source_file,
+        #                       destination_file)
+        # print("MAP_REDUCE_FINISHED")
+        # print("COMPLETED!")
 
     @staticmethod
     def push_file_on_cluster(pfc):
