@@ -1,8 +1,6 @@
 from mapreduce.commands import base_command
 
 
-# TODO: add validation
-
 class ClearDataCommand(base_command.BaseCommand):
 
     def __init__(self):
@@ -21,4 +19,4 @@ class ClearDataCommand(base_command.BaseCommand):
     def send(self):
         self.validate()
         super(ClearDataCommand, self).__init__(self._data)
-        return super(ClearDataCommand, self).send()
+        return super(ClearDataCommand, self).send('clear_data')
