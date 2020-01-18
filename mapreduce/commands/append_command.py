@@ -7,15 +7,10 @@ class AppendCommand(base_command.BaseCommand):
     def __init__(self):
         self._data = {}
 
-    def set_segment(self, segment):
-        self._data['segment'] = segment
-
     def set_file_name(self, file_name):
         self._data["file_name"] = file_name
 
     def validate(self):
-        if not self._data['segment']:
-            raise AttributeError('Segment is not specified!')
         if not self._data['file_name']:
             raise AttributeError('Destination file is not specified!')
 

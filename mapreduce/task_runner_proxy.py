@@ -9,6 +9,7 @@ from mapreduce.commands import (
     get_result_of_key_command,
     make_file_command,
     map_command,
+    shuffle_command,
     reduce_command,
     refresh_table_command,
     write_command,
@@ -39,6 +40,12 @@ class TaskRunner:
         mc.set_destination_file(destination_file)
 
         return mc.send()
+
+    @staticmethod
+    def shuffle(source_file):
+        sc = shuffle_command.ShuffleCommand()
+        sc.set_source_file(source_file)
+        return sc.send()
 
     @staticmethod
     def reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file, destination_file):
@@ -90,10 +97,9 @@ class TaskRunner:
     #     return mrc.send()
 
     @staticmethod
-    def append(file_name, segment):
+    def append(file_name):
         app = append_command.AppendCommand()
         app.set_file_name(file_name)
-        app.set_segment(segment)
         return app.send()
 
     @staticmethod
@@ -119,10 +125,11 @@ class TaskRunner:
     def main_func(file_name, distribution, dest):
         splitted_file = service.split_file(file_name, distribution)
         for counter, fragment in enumerate(splitted_file):
-            segment_name = "f" + str(counter)
-            ip = TaskRunner.append(dest, fragment)['data_node_ip']
+            segment_name = "f" + str(counter+1)
+            ip = TaskRunner.append(dest)['data_node_ip']
             TaskRunner.write(dest + os.sep + segment_name, fragment, ip)
             TaskRunner.refresh_table(dest, ip, segment_name)
+
 
     @staticmethod
     def make_file(dest_file):
@@ -166,6 +173,10 @@ class TaskRunner:
         mapped_folder_name = TaskRunner.map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file,
                                             source_file, destination_file)
         print("MAP_FINISHED")
+        print("SHUFFLE_STARTED")
+        TaskRunner.shuffle(mapped_folder_name['mapped_folder_name'])
+        print("SHUFFLE_FINISHED")
+
         # print("MAP_REDUCE_STARTED")
         # TaskRunner.map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter,
         #                       is_server_source_file, source_file,
