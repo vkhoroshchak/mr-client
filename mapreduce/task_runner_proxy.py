@@ -148,12 +148,11 @@ class TaskRunner:
         TaskRunner.shuffle(mapped_folder_name['mapped_folder_name'])
         print("SHUFFLE_FINISHED")
 
-        # print("MAP_REDUCE_STARTED")
-        # TaskRunner.map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter,
-        #                       is_server_source_file, source_file,
-        #                       destination_file)
-        # print("MAP_REDUCE_FINISHED")
-        # print("COMPLETED!")
+        print("REDUCE_STARTED")
+        TaskRunner.reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file,
+                          destination_file)
+        print("REDUCE_FINISHED")
+        print("COMPLETED!")
 
     @staticmethod
     def push_file_on_cluster(pfc):
