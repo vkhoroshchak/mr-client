@@ -1,4 +1,5 @@
 import os
+import glob
 
 from config import config_provider
 from filesystem import service
@@ -26,13 +27,21 @@ class TaskRunner:
         return mfc.send()
 
     @staticmethod
-    def main_func(file_name, distribution, dest):
-        splitted_file = service.split_file(file_name, distribution)
-        for counter, fragment in enumerate(splitted_file):
-            segment_name = "f" + str(counter + 1)
+    def main_func(file, distribution, dest):
+        file_name = file.split(os.sep)[-1]
+        file_name, ext = file_name.split(os.extsep)
+        output_path = 'temp_data'
+        output_name_template = dest + "_%s."
+
+        service.split_file(file, row_limit=distribution, output_name_template=output_name_template + ext,
+                           output_path=output_path)
+        files = [os.path.join(r, file) for r, d, f in os.walk(output_path) for file in f]
+
+        for i in files:
             ip = TaskRunner.append(dest)['data_node_ip']
-            TaskRunner.write(dest + os.sep + segment_name, fragment, ip)
-            TaskRunner.refresh_table(dest, ip, segment_name)
+            with open(i, 'r', encoding='utf-8') as f:
+                TaskRunner.write(i, f.read(), ip)
+            TaskRunner.refresh_table(dest, ip, i)
 
     @staticmethod
     def append(file_name):
@@ -131,28 +140,27 @@ class TaskRunner:
 
     @staticmethod
     def run_map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter, is_server_source_file,
-                       source_file,
-                       destination_file):
+                       source_file, destination_file, sql_query):
         if not is_server_source_file:
             print("MAKE_FILE_ON_CLUSTER_FINISHED")
             distribution = TaskRunner.make_file(os.path.join(destination_file))['distribution']
             print("MAKING_FILE_ON_CLUSTER_FINISHED")
             print("APPEND_AND_WRITE_PHASE")
             TaskRunner.main_func(source_file, distribution, destination_file)
-            print("APPEND_AND_WRITE_PHASE_FINISHED")
-        print("MAP_STARTED")
-        mapped_folder_name = TaskRunner.map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file,
-                                            source_file, destination_file)
-        print("MAP_FINISHED")
-        print("SHUFFLE_STARTED")
-        TaskRunner.shuffle(mapped_folder_name['mapped_folder_name'])
-        print("SHUFFLE_FINISHED")
-
-        print("REDUCE_STARTED")
-        TaskRunner.reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file,
-                          destination_file)
-        print("REDUCE_FINISHED")
-        print("COMPLETED!")
+        #     print("APPEND_AND_WRITE_PHASE_FINISHED")
+        # print("MAP_STARTED")
+        # mapped_folder_name = TaskRunner.map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file,
+        #                                     source_file, destination_file)
+        # print("MAP_FINISHED")
+        # print("SHUFFLE_STARTED")
+        # TaskRunner.shuffle(mapped_folder_name['mapped_folder_name'])
+        # print("SHUFFLE_FINISHED")
+        #
+        # print("REDUCE_STARTED")
+        # TaskRunner.reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file,
+        #                   destination_file)
+        # print("REDUCE_FINISHED")
+        # print("COMPLETED!")
 
     @staticmethod
     def push_file_on_cluster(pfc):
