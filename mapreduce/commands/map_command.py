@@ -42,6 +42,10 @@ class MapCommand(base_command.BaseCommand):
         encoded = dest_file
         self._data['destination_file'] = encoded
 
+    def set_sql_query(self, sql_query):
+        encoded = sql_query
+        self._data['sql_query'] = encoded
+
     def validate(self):
         if not self._data['mapper']:
             raise AttributeError('Mapper is empty!')
