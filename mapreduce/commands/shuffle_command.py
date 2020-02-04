@@ -13,6 +13,10 @@ class ShuffleCommand(base_command.BaseCommand):
     def validate(self):
         pass
 
+    def set_sql_query(self, sql_query):
+        encoded = sql_query
+        self._data['sql_query'] = encoded
+
     def send(self):
         self.validate()
         super(ShuffleCommand, self).__init__(self._data)

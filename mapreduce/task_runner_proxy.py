@@ -92,9 +92,10 @@ class TaskRunner:
         return mc.send()
 
     @staticmethod
-    def shuffle(source_file):
+    def shuffle(source_file, sql_query):
         sc = shuffle_command.ShuffleCommand()
         sc.set_source_file(source_file)
+        sc.set_sql_query(sql_query)
         return sc.send()
 
     @staticmethod
@@ -150,18 +151,17 @@ class TaskRunner:
             print("APPEND_AND_WRITE_PHASE")
             TaskRunner.main_func(source_file, distribution, destination_file)
             print("APPEND_AND_WRITE_PHASE_FINISHED")
-        print("MAP_STARTED")
-        mapped_folder_name = TaskRunner.map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file,
-                                            source_file, destination_file, sql_query)
-        print("MAP_FINISHED")
-        # print("SHUFFLE_STARTED")
-        # TaskRunner.shuffle(mapped_folder_name['mapped_folder_name'])
-        # print("SHUFFLE_FINISHED")
-        #
+        print("SHUFFLE_STARTED")
+        TaskRunner.shuffle(destination_file,sql_query)
+        print("SHUFFLE_FINISHED")
         print("REDUCE_STARTED")
         TaskRunner.reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file,
                           destination_file, sql_query)
         print("REDUCE_FINISHED")
+        print("MAP_STARTED")
+        TaskRunner.map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file,
+                       source_file, destination_file, sql_query)
+        print("MAP_FINISHED")
         print("COMPLETED!")
 
     @staticmethod
