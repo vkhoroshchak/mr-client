@@ -149,11 +149,14 @@ class TaskRunner:
             distribution = TaskRunner.make_file(os.path.join(destination_file))['distribution']
             print("MAKING_FILE_ON_CLUSTER_FINISHED")
             print("APPEND_AND_WRITE_PHASE")
+            print(distribution)
             TaskRunner.main_func(source_file, distribution, destination_file)
             print("APPEND_AND_WRITE_PHASE_FINISHED")
+
         print("SHUFFLE_STARTED")
         TaskRunner.shuffle(destination_file,sql_query)
         print("SHUFFLE_FINISHED")
+
         print("REDUCE_STARTED")
         TaskRunner.reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file,
                           destination_file, sql_query)
@@ -161,6 +164,7 @@ class TaskRunner:
         print("MAP_STARTED")
         TaskRunner.map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file,
                        source_file, destination_file, sql_query)
+
         print("MAP_FINISHED")
         print("COMPLETED!")
 

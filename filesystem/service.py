@@ -11,6 +11,8 @@ def split_file(filehandler, delimiter=',', row_limit=1000,
     import csv
     reader = csv.reader(open(filehandler, 'r', encoding='utf-8'), delimiter=delimiter)
     current_piece = 1
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
     current_out_path = os.path.join(
         output_path,
         output_name_template % current_piece
@@ -33,8 +35,3 @@ def split_file(filehandler, delimiter=',', row_limit=1000,
             if keep_headers:
                 current_out_writer.writerow(headers)
         current_out_writer.writerow(row)
-
-
-def write_to_file(content, file_name):
-    with open(file_name, 'a+') as file:
-        file.write(content)
