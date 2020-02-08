@@ -32,7 +32,7 @@ class TaskRunner:
     def main_func(file, distribution, dest):
         file_name, ext = os.path.splitext(os.path.basename(file))
         output_path = 'temp_data'
-        output_name_template = dest + "_%s."
+        output_name_template = dest + "_%s"
 
         service.split_file(file, row_limit=distribution, output_name_template=output_name_template + ext,
                            output_path=output_path)
