@@ -2,10 +2,11 @@ from mapreduce.commands import base_command
 
 
 # TODO: add validation
-class MakeFileCommand(base_command.BaseCommand):
+class CreateConfigAndFilesystem(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_destination_file(self, destination_file):
         self._data['file_name'] = destination_file
@@ -14,7 +15,6 @@ class MakeFileCommand(base_command.BaseCommand):
         if not self._data['file_name']:
             raise AttributeError('File_name is not specified!')
 
-    def send(self):
+    def send(self, **kwargs):
         self.validate()
-        super(MakeFileCommand, self).__init__(self._data)
-        return super(MakeFileCommand, self).send('make_file')
+        return super().send('create_config_and_filesystem')
