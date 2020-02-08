@@ -256,11 +256,17 @@ class TaskRunner:
     def select_parser(data):
         select_data = data['select']
         res = []
-        if type(select_data) is list:
-            for i in select_data:
-                res.append(TaskRunner.process_dict_item(i))
+        item_dict = {}
+        if select_data == '*':
+            item_dict['old_name'] = select_data
+            item_dict['new_name'] = select_data
+            res.append(item_dict)
         else:
-            res.append(TaskRunner.process_dict_item(select_data))
+            if type(select_data) is list:
+                for i in select_data:
+                    res.append(TaskRunner.process_dict_item(i))
+            else:
+                res.append(TaskRunner.process_dict_item(select_data))
         return res
 
     @staticmethod
@@ -290,6 +296,7 @@ class TaskRunner:
         parsed_sql = json.dumps(msp.parse(sql_command))
         json_res = json.loads(parsed_sql)
         parsed_select = TaskRunner.select_parser(json_res)
+
         parsed_group_by = TaskRunner.group_by_parser(json_res)
         src_file = TaskRunner.from_parser(json_res)['file_name']
 
