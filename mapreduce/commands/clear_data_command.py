@@ -5,6 +5,7 @@ class ClearDataCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_folder_name(self, folder_name):
         self._data['folder_name'] = folder_name
@@ -16,7 +17,6 @@ class ClearDataCommand(base_command.BaseCommand):
         if not self._data['folder_name']:
             raise AttributeError('Folder name is not specified!')
 
-    def send(self):
+    def send(self, **kwargs):
         self.validate()
-        super(ClearDataCommand, self).__init__(self._data)
-        return super(ClearDataCommand, self).send('clear_data')
+        return super().send('clear_data')

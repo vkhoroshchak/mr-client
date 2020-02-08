@@ -6,6 +6,7 @@ class RefreshTableCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_file_name(self, file_name):
         self._data['file_name'] = file_name
@@ -22,7 +23,6 @@ class RefreshTableCommand(base_command.BaseCommand):
         if not self._data['segment_name']:
             raise AttributeError('Segment name is not specified!')
 
-    def send(self):
+    def send(self, **kwargs):
         self.validate()
-        super(RefreshTableCommand, self).__init__(self._data)
-        return super(RefreshTableCommand, self).send('refresh_table')
+        return super().send('refresh_table')

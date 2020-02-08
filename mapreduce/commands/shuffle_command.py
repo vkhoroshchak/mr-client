@@ -5,6 +5,7 @@ class ShuffleCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_source_file(self, src_file):
         encoded = src_file
@@ -13,14 +14,12 @@ class ShuffleCommand(base_command.BaseCommand):
     def validate(self):
         pass
 
-    def set_sql_query(self, sql_query):
-        encoded = sql_query
-        self._data['sql_query'] = encoded
+    def set_parsed_group_by(self, parsed_group_by):
+        encoded = parsed_group_by
+        self._data['parsed_group_by'] = encoded
 
-    def send(self):
+    def send(self, **kwargs):
         self.validate()
-        super(ShuffleCommand, self).__init__(self._data)
-
-        super(ShuffleCommand, self).send('shuffle')
+        super().send('shuffle')
 
         return True

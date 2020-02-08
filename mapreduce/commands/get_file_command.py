@@ -6,6 +6,7 @@ class GetFileCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_file_name(self, file_name):
         self._data["file_name"] = file_name
@@ -13,7 +14,6 @@ class GetFileCommand(base_command.BaseCommand):
     def validate(self):
         pass
 
-    def send(self, ip=None):
+    def send(self, ip=None, **kwargs):
         self.validate()
-        super(GetFileCommand, self).__init__(self._data)
-        return super(GetFileCommand, self).send(ip) if ip else super(GetFileCommand, self).send()
+        return super().send(ip) if ip else super().send()

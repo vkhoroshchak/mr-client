@@ -8,6 +8,7 @@ class ReduceCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_reducer_from_file(self, path):
         with open(path, 'rb') as file:
@@ -46,16 +47,13 @@ class ReduceCommand(base_command.BaseCommand):
     def validate(self):
         if not self._data['reducer']:
             raise AttributeError('Reducer is empty!')
-        # if 'source_file' and 'server_source_file' not in self._data:
-        #     raise AttributeError('Source file in not mentioned!')
         if not self._data['destination_file']:
             raise AttributeError('Destination file in not mentioned!')
 
-    def set_sql_query(self, sql_query):
-        encoded = sql_query
-        self._data['sql_query'] = encoded
+    def set_parsed_sql(self, kwargs):
+        encoded = kwargs
+        self._data['parsed_sql'] = encoded
 
-    def send(self):
+    def send(self, **kwargs):
         self.validate()
-        super(ReduceCommand, self).__init__(self._data)
         return super(ReduceCommand, self).send('reduce')

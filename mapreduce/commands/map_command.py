@@ -7,6 +7,7 @@ class MapCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_mapper_from_file(self, path):
         with open(path, 'rb') as file:
@@ -42,9 +43,9 @@ class MapCommand(base_command.BaseCommand):
         encoded = dest_file
         self._data['destination_file'] = encoded
 
-    def set_sql_query(self, sql_query):
-        encoded = sql_query
-        self._data['sql_query'] = encoded
+    def set_parsed_select(self, parsed_select):
+        encoded = parsed_select
+        self._data['parsed_select'] = encoded
 
     def validate(self):
         if not self._data['mapper']:
@@ -54,7 +55,6 @@ class MapCommand(base_command.BaseCommand):
         if not self._data['destination_file']:
             raise AttributeError('Destination file in not mentioned!')
 
-    def send(self):
+    def send(self, **kwargs):
         self.validate()
-        super(MapCommand, self).__init__(self._data)
-        return super(MapCommand, self).send('map')
+        return super().send('map')

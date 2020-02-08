@@ -6,6 +6,7 @@ class WriteCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_segment(self, segment):
         self._data['segment'] = segment
@@ -24,7 +25,6 @@ class WriteCommand(base_command.BaseCommand):
         if not self._data['data_node_ip']:
             raise AttributeError('Data node ip is not specified!')
 
-    def send(self):
+    def send(self, **kwargs):
         self.validate()
-        super(WriteCommand, self).__init__(self._data)
-        return super(WriteCommand, self).send('write', self._data['data_node_ip'])
+        return super().send('write', self._data['data_node_ip'])

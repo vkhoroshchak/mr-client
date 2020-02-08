@@ -6,6 +6,7 @@ class GetResultOfKeyCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_key(self, key):
         self._data['key'] = key
@@ -24,10 +25,9 @@ class GetResultOfKeyCommand(base_command.BaseCommand):
         if not self._data['field_delimiter']:
             raise AttributeError('Field delimiter is not specified!')
 
-    def send(self, ip=None):
+    def send(self, ip=None, **kwargs):
         self.validate()
-        super(GetResultOfKeyCommand, self).__init__(self._data)
         if not ip:
-            return super(GetResultOfKeyCommand, self).send()
+            return super().send()
         else:
-            return super(GetResultOfKeyCommand, self).send(ip)
+            return super().send(ip)

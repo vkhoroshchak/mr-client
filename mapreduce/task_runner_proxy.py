@@ -7,7 +7,7 @@ from mapreduce.commands import (
     clear_data_command,
     get_file_command,
     get_result_of_key_command,
-    make_file_command,
+    create_config_and_filesystem,
     map_command,
     shuffle_command,
     reduce_command,
@@ -23,8 +23,8 @@ import moz_sql_parser as msp
 class TaskRunner:
 
     @staticmethod
-    def make_file(dest_file):
-        mfc = make_file_command.MakeFileCommand()
+    def create_config_and_filesystem(dest_file):
+        mfc = create_config_and_filesystem.CreateConfigAndFilesystem()
         mfc.set_destination_file(dest_file)
         return mfc.send()
 
@@ -70,7 +70,7 @@ class TaskRunner:
         return rtc.send()
 
     @staticmethod
-    def map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file, source_file, destination_file, sql_query):
+    def map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file, source_file, destination_file, parsed_select):
         mc = map_command.MapCommand()
         if is_mapper_in_file is False:
             mc.set_mapper(mapper)
@@ -88,20 +88,20 @@ class TaskRunner:
 
         mc.set_field_delimiter(field_delimiter)
         mc.set_destination_file(destination_file)
-        mc.set_sql_query(sql_query)
+        mc.set_parsed_select(parsed_select)
 
         return mc.send()
 
     @staticmethod
-    def shuffle(source_file, sql_query):
+    def shuffle(source_file, parsed_group_by):
         sc = shuffle_command.ShuffleCommand()
         sc.set_source_file(source_file)
-        sc.set_sql_query(sql_query)
+        sc.set_parsed_group_by(parsed_group_by)
         return sc.send()
 
     @staticmethod
     def reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file, destination_file,
-               sql_query):
+               **kwargs):
         rc = reduce_command.ReduceCommand()
 
         if is_reducer_in_file is False:
@@ -119,7 +119,7 @@ class TaskRunner:
         print(destination_file)
         print("DESTDESTDEST")
         rc.set_destination_file(destination_file)
-        rc.set_sql_query(sql_query)
+        rc.set_parsed_sql(kwargs)
         return rc.send()
 
     @staticmethod
@@ -133,7 +133,7 @@ class TaskRunner:
         if not ip:
             return get_file.send()
         else:
-            return get_file.send(ip)
+            return get_file.send(ip, )
 
     @staticmethod
     def clear_data(folder_name):
@@ -174,7 +174,7 @@ class TaskRunner:
 
     @staticmethod
     def push_file_on_cluster(src_file, dest_file):
-        dist = TaskRunner.make_file(dest_file)
+        dist = TaskRunner.create_config_and_filesystem(dest_file)
         TaskRunner.main_func(src_file, dist['distribution'], dest_file)
 
     @staticmethod
@@ -196,7 +196,7 @@ class TaskRunner:
             elif item['hash_keys_range'][0] < key_hash <= item['hash_keys_range'][1]:
                 data_node_ip = item['data_node_ip']
                 break
-        result = grk.send('http://' + data_node_ip)
+        result = grk.send('http://' + data_node_ip, )
         service.write_to_file(result['result'], file_name)
 
     @staticmethod
@@ -244,9 +244,9 @@ class TaskRunner:
         elif 'min' in diction['value'].keys():
             item_dict = TaskRunner.parse_aggregation_value('min', diction)
         elif 'max' in diction['value'].keys():
-            item_dict = TaskRunner.parse_aggregation_value('max', i)
+            item_dict = TaskRunner.parse_aggregation_value('max', diction)
         elif 'avg' in diction['value'].keys():
-            item_dict = TaskRunner.parse_aggregation_value('avg', i)
+            item_dict = TaskRunner.parse_aggregation_value('avg', diction)
         elif 'count' in diction['value'].keys():
             item_dict = TaskRunner.parse_aggregation_value('count', diction)
 
@@ -286,17 +286,23 @@ class TaskRunner:
         mftifc.send()
 
     @staticmethod
-    def run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, is_server_source_file, sql_command):
+    def run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, sql_command, is_server_source_file):
         parsed_sql = json.dumps(msp.parse(sql_command))
         json_res = json.loads(parsed_sql)
+        parsed_select = TaskRunner.select_parser(json_res)
+        parsed_group_by = TaskRunner.group_by_parser(json_res)
         src_file = TaskRunner.from_parser(json_res)['file_name']
-        if not is_server_source_file:
-            dest_file = os.path.dirname(src_file)
-            TaskRunner.push_file_on_cluster(src_file, dest_file)
-        else:
-            dest_file = src_file
-            TaskRunner.make_file(dest_file)
-            # TaskRunner.move_file_to_init_folder()
-        TaskRunner.shuffle(src_file, sql_command)
-        TaskRunner.reduce(is_reducer_in_file, reducer, "kd", is_server_source_file, src_file, dest_file, sql_command)
-        TaskRunner.map(is_mapper_in_file, mapper, "kd", is_server_source_file, src_file, dest_file, sql_command)
+
+        # Never enters if statement
+        # if not is_server_source_file:
+        #     dest_file = os.path.dirname(src_file)
+        #     TaskRunner.push_file_on_cluster(src_file, dest_file)
+        # else:
+        dest_file = src_file
+        TaskRunner.create_config_and_filesystem(dest_file)
+        TaskRunner.move_file_to_init_folder()
+
+        TaskRunner.shuffle(src_file, parsed_group_by[0])
+        TaskRunner.reduce(is_reducer_in_file, reducer, "kd", is_server_source_file, src_file, dest_file,
+                          parsed_select=parsed_select, parsed_group_by=parsed_group_by)
+        TaskRunner.map(is_mapper_in_file, mapper, "kd", is_server_source_file, src_file, dest_file, parsed_select)

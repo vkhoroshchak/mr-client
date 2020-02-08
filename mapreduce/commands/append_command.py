@@ -6,6 +6,7 @@ class AppendCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_file_name(self, file_name):
         self._data["file_name"] = file_name
@@ -14,7 +15,6 @@ class AppendCommand(base_command.BaseCommand):
         if not self._data['file_name']:
             raise AttributeError('Destination file is not specified!')
 
-    def send(self):
+    def send(self, **kwargs):
         self.validate()
-        super(AppendCommand, self).__init__(self._data)
-        return super(AppendCommand, self).send('append')
+        return super().send('append')
