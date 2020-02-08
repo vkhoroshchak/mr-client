@@ -23,7 +23,8 @@ args = parser.parse_args()
 # TODO: refactor
 def cli_parser(tr):
     if args.pfc:
-        return tr.push_file_on_cluster(args.pfc)
+        src_file, dest_file = args.pfc.split(",")
+        return tr.push_file_on_cluster(src_file, dest_file)
     if args.rem:
         print("CLEAR_DATA_STARTED")
         print("CLEAR_DATA_FINISHED!")
@@ -32,6 +33,8 @@ def cli_parser(tr):
     if args.rk and args.dest:
         print("GET_KEY_FROM_CLUSTER")
         return tr.get_result_of_key(args.rk, args.dest)
+
+
 
     if not args.mf:
         is_mapper_in_file = False
@@ -53,8 +56,15 @@ def cli_parser(tr):
     else:
         source_file = args.src
         is_server_source_file = False
-    return tr.run_map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, args.kd, is_server_source_file,
+
+
+
+    choice = input("Map Reduce (1) or SQL (2)?")
+    if choice == "1":
+        return tr.run_map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, args.kd, is_server_source_file,
                              source_file, args.dest, args.sql)
+    else:
+        tr.run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, is_server_source_file, args.sql)
 
 
 if __name__ == '__main__':

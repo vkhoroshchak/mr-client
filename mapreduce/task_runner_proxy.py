@@ -1,5 +1,4 @@
 import os
-import glob
 
 from config import config_provider
 from filesystem import service
@@ -14,7 +13,10 @@ from mapreduce.commands import (
     reduce_command,
     refresh_table_command,
     write_command,
+    move_file_to_init_folder_command
 )
+import json
+import moz_sql_parser as msp
 
 
 # TODO: refactor
@@ -28,8 +30,7 @@ class TaskRunner:
 
     @staticmethod
     def main_func(file, distribution, dest):
-        file_name = file.split(os.sep)[-1]
-        file_name, ext = file_name.split(os.extsep)
+        file_name, ext = os.path.splitext(os.path.basename(file))
         output_path = 'temp_data'
         output_name_template = dest + "_%s."
 
@@ -114,7 +115,9 @@ class TaskRunner:
             rc.set_source_file(source_file)
 
         rc.set_key_delimiter(key_delimiter)
-
+        print("DESTDESTDEST")
+        print(destination_file)
+        print("DESTDESTDEST")
         rc.set_destination_file(destination_file)
         rc.set_sql_query(sql_query)
         return rc.send()
@@ -145,16 +148,17 @@ class TaskRunner:
     def run_map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter, is_server_source_file,
                        source_file, destination_file, sql_query):
         if not is_server_source_file:
-            print("MAKE_FILE_ON_CLUSTER_FINISHED")
-            distribution = TaskRunner.make_file(os.path.join(destination_file))['distribution']
-            print("MAKING_FILE_ON_CLUSTER_FINISHED")
-            print("APPEND_AND_WRITE_PHASE")
-            print(distribution)
-            TaskRunner.main_func(source_file, distribution, destination_file)
-            print("APPEND_AND_WRITE_PHASE_FINISHED")
+            TaskRunner.push_file_on_cluster(source_file, destination_file)
+            # print("MAKE_FILE_ON_CLUSTER_FINISHED")
+            # distribution = TaskRunner.make_file(os.path.join(destination_file))['distribution']
+            # print("MAKING_FILE_ON_CLUSTER_FINISHED")
+            # print("APPEND_AND_WRITE_PHASE")
+            # print(distribution)
+            # TaskRunner.main_func(source_file, distribution, destination_file)
+            # print("APPEND_AND_WRITE_PHASE_FINISHED")
 
         print("SHUFFLE_STARTED")
-        TaskRunner.shuffle(destination_file,sql_query)
+        TaskRunner.shuffle(destination_file, sql_query)
         print("SHUFFLE_FINISHED")
 
         print("REDUCE_STARTED")
@@ -169,10 +173,9 @@ class TaskRunner:
         print("COMPLETED!")
 
     @staticmethod
-    def push_file_on_cluster(pfc):
-        arr = pfc.split(",")
-        dist = TaskRunner.make_file(arr[1])
-        TaskRunner.main_func(arr[0], dist['distribution'], arr[1])
+    def push_file_on_cluster(src_file, dest_file):
+        dist = TaskRunner.make_file(dest_file)
+        TaskRunner.main_func(src_file, dist['distribution'], dest_file)
 
     @staticmethod
     def get_result_of_key(key, file_name):
@@ -195,3 +198,105 @@ class TaskRunner:
                 break
         result = grk.send('http://' + data_node_ip)
         service.write_to_file(result['result'], file_name)
+
+    @staticmethod
+    def group_by_parser(data):
+        select_data = data['groupby']
+        res = []
+        if type(select_data) is list:
+            for item in select_data:
+                item_dict = {}
+
+                if 'literal' in item['value'].keys():
+                    item_dict['key_name'] = item['value']['literal']
+                else:
+                    item_dict['key_name'] = item['value']
+
+                res.append(item_dict)
+        else:
+            item_dict = {}
+            if 'literal' in select_data['value'].keys():
+                item_dict['key_name'] = select_data['value']['literal']
+            else:
+                item_dict['key_name'] = select_data['value']
+
+            res.append(item_dict)
+        return res
+
+    @staticmethod
+    def process_dict_item(diction):
+        item_dict = {}
+        if type(diction['value']) is not dict:
+            item_dict['old_name'] = diction['value']
+            if 'name' in diction.keys():
+                item_dict['new_name'] = diction['name']
+            else:
+                item_dict['new_name'] = diction['value']
+        elif 'literal' in diction['value'].keys():
+            item_dict['old_name'] = diction['value']['literal']
+            if 'name' in diction.keys():
+                item_dict['new_name'] = diction['name']
+            else:
+                item_dict['new_name'] = diction['value']['literal']
+        elif 'sum' in diction['value'].keys():
+            item_dict = TaskRunner.parse_aggregation_value('sum', diction)
+
+        elif 'min' in diction['value'].keys():
+            item_dict = TaskRunner.parse_aggregation_value('min', diction)
+        elif 'max' in diction['value'].keys():
+            item_dict = TaskRunner.parse_aggregation_value('max', i)
+        elif 'avg' in diction['value'].keys():
+            item_dict = TaskRunner.parse_aggregation_value('avg', i)
+        elif 'count' in diction['value'].keys():
+            item_dict = TaskRunner.parse_aggregation_value('count', diction)
+
+        return item_dict
+
+    @staticmethod
+    def select_parser(data):
+        select_data = data['select']
+        res = []
+        if type(select_data) is list:
+            for i in select_data:
+                res.append(TaskRunner.process_dict_item(i))
+        else:
+            res.append(TaskRunner.process_dict_item(select_data))
+        return res
+
+    @staticmethod
+    def from_parser(data):
+        res = {}
+        if type(data['from']) is not dict:
+            res['file_name'] = data['from']
+        return res
+
+    @staticmethod
+    def parse_aggregation_value(name, data):
+        res = {'old_name': data['value'][name]}
+        if 'name' in data.keys():
+            res['new_name'] = f"{data['name']}"
+        else:
+            res['new_name'] = f"{name.upper()}_{data['value'][name]}"
+        res['aggregate_f_name'] = name
+        return res
+
+    @staticmethod
+    def move_file_to_init_folder():
+        mftifc = move_file_to_init_folder_command.MoveFileToInitFolderCommand()
+        mftifc.send()
+
+    @staticmethod
+    def run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, is_server_source_file, sql_command):
+        parsed_sql = json.dumps(msp.parse(sql_command))
+        json_res = json.loads(parsed_sql)
+        src_file = TaskRunner.from_parser(json_res)['file_name']
+        if not is_server_source_file:
+            dest_file = os.path.dirname(src_file)
+            TaskRunner.push_file_on_cluster(src_file, dest_file)
+        else:
+            dest_file = src_file
+            TaskRunner.make_file(dest_file)
+            # TaskRunner.move_file_to_init_folder()
+        TaskRunner.shuffle(src_file, sql_command)
+        TaskRunner.reduce(is_reducer_in_file, reducer, "kd", is_server_source_file, src_file, dest_file, sql_command)
+        TaskRunner.map(is_mapper_in_file, mapper, "kd", is_server_source_file, src_file, dest_file, sql_command)
