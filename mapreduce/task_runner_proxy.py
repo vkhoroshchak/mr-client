@@ -1,5 +1,4 @@
 import os
-import csv
 
 from config import config_provider
 from filesystem import service
@@ -34,38 +33,37 @@ class TaskRunner:
         file_name, ext = os.path.splitext(os.path.basename(file))
         output_name_template = dest + "_%s"
         output_name_template = output_name_template + ext
+        with open(file, 'r', encoding='utf-8') as f:
+            current_piece = 1
+            headers = f.readline()
+            current_limit = row_limit
 
-        reader = csv.reader(open(file, 'r', encoding='utf-8'), delimiter=delimiter)
-        current_piece = 1
-        headers = next(reader)
-        current_limit = row_limit
+            dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
 
-        dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
+            for i, row in enumerate(f):
 
-        for i, row in enumerate(reader):
+                if i + 1 > current_limit:
+                    current_piece += 1
+                    current_limit = row_limit * current_piece
+                    if keep_headers:
+                        dict_item["content"]["headers"] = headers
 
-            if i + 1 > current_limit:
-                current_piece += 1
-                current_limit = row_limit * current_piece
-                if keep_headers:
-                    dict_item["content"]["headers"] = delimiter.join(headers)
+                    dict_item["file_name"] = output_name_template % (current_piece - 1)
+                    ip = TaskRunner.append(dest)['data_node_ip']
+                    TaskRunner.write(dict_item["file_name"], dict_item["content"], ip)
+                    TaskRunner.refresh_table(dest, ip, dict_item["file_name"])
+                    dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
 
-                dict_item["file_name"] = output_name_template % (current_piece - 1)
-                ip = TaskRunner.append(dest)['data_node_ip']
-                TaskRunner.write(dict_item["file_name"], dict_item["content"], ip)
-                TaskRunner.refresh_table(dest, ip, dict_item["file_name"])
-                dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
+                dict_item["content"]["items"].append(row)
 
-            dict_item["content"]["items"].append(row)
+            dict_item["file_name"] = output_name_template % current_piece
 
-        dict_item["file_name"] = output_name_template % current_piece
+            if keep_headers:
+                dict_item["content"]["headers"] = headers
 
-        if keep_headers:
-            dict_item["content"]["headers"] = delimiter.join(headers)
-
-        ip = TaskRunner.append(dest)['data_node_ip']
-        TaskRunner.write(dict_item["file_name"], dict_item["content"], ip)
-        TaskRunner.refresh_table(dest, ip, output_name_template % current_piece)
+            ip = TaskRunner.append(dest)['data_node_ip']
+            TaskRunner.write(dict_item["file_name"], dict_item["content"], ip)
+            TaskRunner.refresh_table(dest, ip, output_name_template % current_piece)
 
     @staticmethod
     def append(file_name):
