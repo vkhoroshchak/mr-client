@@ -292,6 +292,15 @@ class TaskRunner:
         mftifc.send()
 
     @staticmethod
+    def prepare_for_sql_query(dest_file):
+        print("create_config_and_filesystem".upper())
+        TaskRunner.create_config_and_filesystem(dest_file)
+        print("create_config_and_filesystem finished".upper())
+        print("move_file_to_init_folder".upper())
+        TaskRunner.move_file_to_init_folder()
+        print("move_file_to_init_folder finished".upper())
+
+    @staticmethod
     def run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, sql_command, is_server_source_file):
         parsed_sql = json.dumps(msp.parse(sql_command))
         json_res = json.loads(parsed_sql)
@@ -306,9 +315,7 @@ class TaskRunner:
         #     TaskRunner.push_file_on_cluster(src_file, dest_file)
         # else:
         dest_file = src_file
-        TaskRunner.create_config_and_filesystem(dest_file)
-        TaskRunner.move_file_to_init_folder()
-
+        TaskRunner.prepare_for_sql_query(dest_file)
         TaskRunner.shuffle(src_file, parsed_group_by[0])
         TaskRunner.reduce(is_reducer_in_file, reducer, "kd", is_server_source_file, src_file, dest_file,
                           parsed_select=parsed_select, parsed_group_by=parsed_group_by)
