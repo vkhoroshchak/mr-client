@@ -1,4 +1,5 @@
 import os
+import csv
 
 from config import config_provider
 from filesystem import service
@@ -29,20 +30,42 @@ class TaskRunner:
         return mfc.send()
 
     @staticmethod
-    def main_func(file, distribution, dest):
+    def main_func(file, row_limit, dest, delimiter=',', keep_headers=True):
         file_name, ext = os.path.splitext(os.path.basename(file))
-        output_path = 'temp_data'
         output_name_template = dest + "_%s"
+        output_name_template = output_name_template + ext
 
-        service.split_file(file, row_limit=distribution, output_name_template=output_name_template + ext,
-                           output_path=output_path)
-        files = [os.path.join(r, file) for r, d, f in os.walk(output_path) for file in f]
+        reader = csv.reader(open(file, 'r', encoding='utf-8'), delimiter=delimiter)
+        current_piece = 1
+        headers = next(reader)
+        current_limit = row_limit
 
-        for i in files:
-            ip = TaskRunner.append(dest)['data_node_ip']
-            with open(i, 'r', encoding='utf-8') as f:
-                TaskRunner.write(i, f.read(), ip)
-            TaskRunner.refresh_table(dest, ip, i)
+        dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
+
+        for i, row in enumerate(reader):
+
+            if i + 1 > current_limit:
+                current_piece += 1
+                current_limit = row_limit * current_piece
+                if keep_headers:
+                    dict_item["content"]["headers"] = delimiter.join(headers)
+
+                dict_item["file_name"] = output_name_template % (current_piece - 1)
+                ip = TaskRunner.append(dest)['data_node_ip']
+                TaskRunner.write(dict_item["file_name"], dict_item["content"], ip)
+                TaskRunner.refresh_table(dest, ip, dict_item["file_name"])
+                dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
+
+            dict_item["content"]["items"].append(row)
+
+        dict_item["file_name"] = output_name_template % current_piece
+
+        if keep_headers:
+            dict_item["content"]["headers"] = delimiter.join(headers)
+
+        ip = TaskRunner.append(dest)['data_node_ip']
+        TaskRunner.write(dict_item["file_name"], dict_item["content"], ip)
+        TaskRunner.refresh_table(dest, ip, output_name_template % current_piece)
 
     @staticmethod
     def append(file_name):
@@ -70,7 +93,8 @@ class TaskRunner:
         return rtc.send()
 
     @staticmethod
-    def map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file, source_file, destination_file, parsed_select):
+    def map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file, source_file, destination_file,
+            parsed_select):
         mc = map_command.MapCommand()
         if is_mapper_in_file is False:
             mc.set_mapper(mapper)
