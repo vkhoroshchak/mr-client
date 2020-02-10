@@ -13,7 +13,8 @@ from mapreduce.commands import (
     reduce_command,
     refresh_table_command,
     write_command,
-    move_file_to_init_folder_command
+    move_file_to_init_folder_command,
+    check_if_file_is_on_cluster_command
 )
 import json
 import moz_sql_parser as msp
@@ -196,6 +197,7 @@ class TaskRunner:
 
     @staticmethod
     def push_file_on_cluster(src_file, dest_file):
+        dest_file = os.path.basename(src_file)
         dist = TaskRunner.create_config_and_filesystem(dest_file)
         TaskRunner.main_func(src_file, dist['distribution'], dest_file)
 
@@ -316,29 +318,48 @@ class TaskRunner:
     @staticmethod
     def prepare_for_sql_query(dest_file):
         # print("create_config_and_filesystem".upper())
-        # TaskRunner.create_config_and_filesystem(dest_file)
+        TaskRunner.create_config_and_filesystem(dest_file)
         # print("create_config_and_filesystem finished".upper())
-        TaskRunner.push_file_on_cluster(dest_file, dest_file)
+        # TaskRunner.push_file_on_cluster(dest_file, dest_file)
         print("move_file_to_init_folder".upper())
         TaskRunner.move_file_to_init_folder()
         print("move_file_to_init_folder finished".upper())
 
     @staticmethod
+    def check_if_file_is_on_cluster(file_name):
+        cifioc = check_if_file_is_on_cluster_command.CheckIfFileIsOnCLuster()
+        cifioc.set_file_name(file_name)
+        print("CHECKING FILE NAME " + file_name)
+        return cifioc.send()
+
+
+    @staticmethod
     def run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, sql_command, is_server_source_file):
         # initial_sql_command = sql_command
         pattern = re.compile(r"(?<=FROM )(.+? )", flags=re.IGNORECASE)
+        print("SQL COMMAND")
         print(sql_command)
         search = re.search(pattern, sql_command)
-        print(search)
         src_file = search.group(1)
+        print("SOURCE FILE")
         print(src_file)
-        sql_command = re.sub(pattern, os.path.basename(src_file), sql_command)
+        file_name = os.path.basename(src_file)
+        sql_command = re.sub(pattern, file_name, sql_command)
         src_file = src_file.strip()
+        file_name = file_name.strip()
+        print("UPDATED SQL COMMAND")
         print(sql_command)
         parsed_sql = json.dumps(msp.parse(sql_command))
         json_res = json.loads(parsed_sql)
         parsed_select = TaskRunner.select_parser(json_res)
         parsed_group_by = TaskRunner.group_by_parser(json_res)
+        print("STARTED TO CHECK IF FILE IS ON CLUSTER")
+        is_file_on_cluster = TaskRunner.check_if_file_is_on_cluster(file_name)['is_file_on_cluster']
+        print(is_file_on_cluster)
+        print("FINISHED TO CHECK IF FILE IS ON CLUSTER")
+        if not is_file_on_cluster:
+            print("PUSHING FILE ON CLUSTER")
+            TaskRunner.push_file_on_cluster(src_file, file_name)
         # src_file = TaskRunner.from_parser(json_res)['file_name']
 
         # Never enters if statement
@@ -346,6 +367,7 @@ class TaskRunner:
         #     dest_file = os.path.dirname(src_file)
         #     TaskRunner.push_file_on_cluster(src_file, dest_file)
         # else:
+
         dest_file = os.path.basename(src_file)
         TaskRunner.prepare_for_sql_query(dest_file)
 
