@@ -20,6 +20,8 @@ import json
 import moz_sql_parser as msp
 import re
 
+field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
+            os.path.join('..', 'config', 'json', 'client_config.json'))
 # TODO: refactor
 class TaskRunner:
 
@@ -92,7 +94,7 @@ class TaskRunner:
         return rtc.send()
 
     @staticmethod
-    def map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file, source_file, destination_file,
+    def map(is_mapper_in_file, mapper, is_server_source_file, source_file, destination_file,
             parsed_select):
         mc = map_command.MapCommand()
         if is_mapper_in_file is False:
@@ -105,10 +107,6 @@ class TaskRunner:
         else:
             mc.set_source_file(source_file)
 
-        mc.set_key_delimiter(key_delimiter)
-        field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
-            os.path.join('..', 'config', 'json', 'client_config.json'))
-
         mc.set_field_delimiter(field_delimiter)
         mc.set_destination_file(destination_file)
         mc.set_parsed_select(parsed_select)
@@ -120,10 +118,11 @@ class TaskRunner:
         sc = shuffle_command.ShuffleCommand()
         sc.set_source_file(source_file)
         sc.set_parsed_group_by(parsed_group_by)
+        sc.set_field_delimiter(field_delimiter)
         return sc.send()
 
     @staticmethod
-    def reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file, destination_file,
+    def reduce(is_reducer_in_file, reducer, is_server_source_file, source_file, destination_file,
                **kwargs):
         rc = reduce_command.ReduceCommand()
 
@@ -137,7 +136,7 @@ class TaskRunner:
         else:
             rc.set_source_file(source_file)
 
-        rc.set_key_delimiter(key_delimiter)
+        rc.set_field_delimiter(field_delimiter)
         print("DESTDESTDEST")
         print(destination_file)
         print("DESTDESTDEST")
@@ -168,60 +167,10 @@ class TaskRunner:
         return clear_data.send()
 
     @staticmethod
-    def run_map_reduce(is_mapper_in_file, mapper, is_reducer_in_file, reducer, key_delimiter, is_server_source_file,
-                       source_file, destination_file, sql_query):
-        if not is_server_source_file:
-            TaskRunner.push_file_on_cluster(source_file, destination_file)
-            # print("MAKE_FILE_ON_CLUSTER_FINISHED")
-            # distribution = TaskRunner.make_file(os.path.join(destination_file))['distribution']
-            # print("MAKING_FILE_ON_CLUSTER_FINISHED")
-            # print("APPEND_AND_WRITE_PHASE")
-            # print(distribution)
-            # TaskRunner.main_func(source_file, distribution, destination_file)
-            # print("APPEND_AND_WRITE_PHASE_FINISHED")
-
-        print("SHUFFLE_STARTED")
-        TaskRunner.shuffle(destination_file, sql_query)
-        print("SHUFFLE_FINISHED")
-
-        print("REDUCE_STARTED")
-        TaskRunner.reduce(is_reducer_in_file, reducer, key_delimiter, is_server_source_file, source_file,
-                          destination_file, sql_query)
-        print("REDUCE_FINISHED")
-        print("MAP_STARTED")
-        TaskRunner.map(is_mapper_in_file, mapper, key_delimiter, is_server_source_file,
-                       source_file, destination_file, sql_query)
-
-        print("MAP_FINISHED")
-        print("COMPLETED!")
-
-    @staticmethod
     def push_file_on_cluster(src_file, dest_file):
         dest_file = os.path.basename(src_file)
         dist = TaskRunner.create_config_and_filesystem(dest_file)
         TaskRunner.main_func(src_file, dist['distribution'], dest_file)
-
-    @staticmethod
-    def get_result_of_key(key, file_name):
-        field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
-            os.path.join('..', 'config', 'json', 'client_config.json'))
-
-        grk = get_result_of_key_command.GetResultOfKeyCommand()
-        grk.set_key(key)
-        grk.set_file_name(file_name)
-        grk.set_field_delimiter(field_delimiter)
-        json_response = grk.send()
-        key_hash = json_response['hash_key']['key_hash']
-        print(json_response)
-        for item in json_response['key_ranges']:
-            if item['hash_keys_range'][0] <= key_hash < item['hash_keys_range'][1]:
-                data_node_ip = item['data_node_ip']
-                break
-            elif item['hash_keys_range'][0] < key_hash <= item['hash_keys_range'][1]:
-                data_node_ip = item['data_node_ip']
-                break
-        result = grk.send('http://' + data_node_ip, )
-        service.write_to_file(result['result'], file_name)
 
     @staticmethod
     def group_by_parser(data):
@@ -353,6 +302,7 @@ class TaskRunner:
         json_res = json.loads(parsed_sql)
         parsed_select = TaskRunner.select_parser(json_res)
         parsed_group_by = TaskRunner.group_by_parser(json_res)
+        print(json_res)
         print("STARTED TO CHECK IF FILE IS ON CLUSTER")
         is_file_on_cluster = TaskRunner.check_if_file_is_on_cluster(file_name)['is_file_on_cluster']
         print(is_file_on_cluster)
@@ -372,6 +322,6 @@ class TaskRunner:
         TaskRunner.prepare_for_sql_query(dest_file)
 
         TaskRunner.shuffle(src_file, parsed_group_by[0])
-        TaskRunner.reduce(is_reducer_in_file, reducer, "kd", is_server_source_file, src_file, dest_file,
+        TaskRunner.reduce(is_reducer_in_file, reducer, is_server_source_file, src_file, dest_file,
                           parsed_select=parsed_select, parsed_group_by=parsed_group_by)
-        TaskRunner.map(is_mapper_in_file, mapper, "kd", is_server_source_file, src_file, dest_file, parsed_select)
+        TaskRunner.map(is_mapper_in_file, mapper, is_server_source_file, src_file, dest_file, parsed_select)

@@ -8,7 +8,6 @@ parser.add_argument("--mf", "--mapper_from_file", action="store", help="Set mapp
 parser.add_argument("--r", "--reducer", action="store", help="Set reducer as a content")
 parser.add_argument("--rf", "--reducer_from_file", action="store",
                     help="Set reducer as a file path where it is located")
-parser.add_argument("--kd", "--key_delimiter", action="store", help="Set key delimiter")
 parser.add_argument("--src", "--source_file", action="store", help="Source file path")
 parser.add_argument("--is_src", "--is_server_source_file", action="store", help="If source file is on server")
 parser.add_argument("--dest", "--destination_file", action="store", help="Destination file path")
@@ -48,7 +47,8 @@ def cli_parser(tr):
         is_reducer_in_file = True
         reducer = args.rf
 
-    tr.run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, args.sql, is_server_source_file=True)
+    tr.run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, args.sql,
+                       is_server_source_file=True)
 
 
 if __name__ == '__main__':

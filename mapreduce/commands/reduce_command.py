@@ -22,12 +22,6 @@ class ReduceCommand(base_command.BaseCommand):
         decoded = encoded.decode('utf-8')
         self._data['reducer'] = decoded
 
-    # check if method to get (map)_key_delimiter from file is necessary
-    def set_key_delimiter(self, key_delimiter):
-        # encoded = base64.b64encode(key_delimiter.encode())
-        encoded = key_delimiter
-        self._data['key_delimiter'] = encoded
-
     def set_field_delimiter(self, field_delimiter):
         encoded = field_delimiter
         self._data['field_delimiter'] = encoded
