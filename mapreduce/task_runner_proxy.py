@@ -1,12 +1,10 @@
 import os
 
 from config import config_provider
-from filesystem import service
 from mapreduce.commands import (
     append_command,
     clear_data_command,
     get_file_command,
-    get_result_of_key_command,
     create_config_and_filesystem,
     map_command,
     shuffle_command,
@@ -16,13 +14,11 @@ from mapreduce.commands import (
     move_file_to_init_folder_command,
     check_if_file_is_on_cluster_command
 )
-import json
-import moz_sql_parser as msp
-import re
 
 field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
-            os.path.join('..', 'config', 'json', 'client_config.json'))
-# TODO: refactor
+    os.path.join('..', 'config', 'json', 'client_config.json'))
+
+
 class TaskRunner:
 
     @staticmethod
@@ -32,7 +28,7 @@ class TaskRunner:
         return mfc.send()
 
     @staticmethod
-    def main_func(file, row_limit, dest, delimiter=',', keep_headers=True):
+    def main_func(file, row_limit, dest, keep_headers=True):
         file_name, ext = os.path.splitext(os.path.basename(file))
         output_name_template = dest + "_%s"
         output_name_template = output_name_template + ext
@@ -94,8 +90,7 @@ class TaskRunner:
         return rtc.send()
 
     @staticmethod
-    def map(is_mapper_in_file, mapper, is_server_source_file, source_file, destination_file,
-            parsed_select):
+    def map(is_mapper_in_file, mapper, is_server_source_file, source_file, destination_file):
         mc = map_command.MapCommand()
         if is_mapper_in_file is False:
             mc.set_mapper(mapper)
@@ -109,21 +104,19 @@ class TaskRunner:
 
         mc.set_field_delimiter(field_delimiter)
         mc.set_destination_file(destination_file)
-        mc.set_parsed_select(parsed_select)
 
         return mc.send()
 
     @staticmethod
-    def shuffle(source_file, parsed_group_by):
+    def shuffle(source_file, key):
         sc = shuffle_command.ShuffleCommand()
         sc.set_source_file(source_file)
-        sc.set_parsed_group_by(parsed_group_by)
         sc.set_field_delimiter(field_delimiter)
+        sc.set_key(key)
         return sc.send()
 
     @staticmethod
-    def reduce(is_reducer_in_file, reducer, is_server_source_file, source_file, destination_file,
-               **kwargs):
+    def reduce(is_reducer_in_file, reducer, is_server_source_file, source_file, destination_file):
         rc = reduce_command.ReduceCommand()
 
         if is_reducer_in_file is False:
@@ -141,7 +134,6 @@ class TaskRunner:
         print(destination_file)
         print("DESTDESTDEST")
         rc.set_destination_file(destination_file)
-        rc.set_parsed_sql(kwargs)
         return rc.send()
 
     @staticmethod
@@ -161,6 +153,7 @@ class TaskRunner:
     def clear_data(folder_name):
         clear_data = clear_data_command.ClearDataCommand()
         folder_name_arr = folder_name.split(',')
+        print(folder_name_arr)
         clear_data.set_folder_name(folder_name_arr[0])
         clear_data.set_remove_all_data(bool(int(folder_name_arr[1])))
 
@@ -171,93 +164,6 @@ class TaskRunner:
         dest_file = os.path.basename(src_file)
         dist = TaskRunner.create_config_and_filesystem(dest_file)
         TaskRunner.main_func(src_file, dist['distribution'], dest_file)
-
-    @staticmethod
-    def group_by_parser(data):
-        select_data = data['groupby']
-        res = []
-        if type(select_data) is list:
-            for item in select_data:
-                item_dict = {}
-
-                if 'literal' in item['value'].keys():
-                    item_dict['key_name'] = item['value']['literal']
-                else:
-                    item_dict['key_name'] = item['value']
-
-                res.append(item_dict)
-        else:
-            item_dict = {}
-            if 'literal' in select_data['value'].keys():
-                item_dict['key_name'] = select_data['value']['literal']
-            else:
-                item_dict['key_name'] = select_data['value']
-
-            res.append(item_dict)
-        return res
-
-    @staticmethod
-    def process_dict_item(diction):
-        item_dict = {}
-        if type(diction['value']) is not dict:
-            item_dict['old_name'] = diction['value']
-            if 'name' in diction.keys():
-                item_dict['new_name'] = diction['name']
-            else:
-                item_dict['new_name'] = diction['value']
-        elif 'literal' in diction['value'].keys():
-            item_dict['old_name'] = diction['value']['literal']
-            if 'name' in diction.keys():
-                item_dict['new_name'] = diction['name']
-            else:
-                item_dict['new_name'] = diction['value']['literal']
-        elif 'sum' in diction['value'].keys():
-            item_dict = TaskRunner.parse_aggregation_value('sum', diction)
-
-        elif 'min' in diction['value'].keys():
-            item_dict = TaskRunner.parse_aggregation_value('min', diction)
-        elif 'max' in diction['value'].keys():
-            item_dict = TaskRunner.parse_aggregation_value('max', diction)
-        elif 'avg' in diction['value'].keys():
-            item_dict = TaskRunner.parse_aggregation_value('avg', diction)
-        elif 'count' in diction['value'].keys():
-            item_dict = TaskRunner.parse_aggregation_value('count', diction)
-
-        return item_dict
-
-    @staticmethod
-    def select_parser(data):
-        select_data = data['select']
-        res = []
-        item_dict = {}
-        if select_data == '*':
-            item_dict['old_name'] = select_data
-            item_dict['new_name'] = select_data
-            res.append(item_dict)
-        else:
-            if type(select_data) is list:
-                for i in select_data:
-                    res.append(TaskRunner.process_dict_item(i))
-            else:
-                res.append(TaskRunner.process_dict_item(select_data))
-        return res
-
-    @staticmethod
-    def from_parser(data):
-        res = {}
-        if type(data['from']) is not dict:
-            res['file_name'] = data['from']
-        return res
-
-    @staticmethod
-    def parse_aggregation_value(name, data):
-        res = {'old_name': data['value'][name]}
-        if 'name' in data.keys():
-            res['new_name'] = f"{data['name']}"
-        else:
-            res['new_name'] = f"{name.upper()}_{data['value'][name]}"
-        res['aggregate_f_name'] = name
-        return res
 
     @staticmethod
     def move_file_to_init_folder():
@@ -281,47 +187,20 @@ class TaskRunner:
         print("CHECKING FILE NAME " + file_name)
         return cifioc.send()
 
-
     @staticmethod
-    def run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, sql_command, is_server_source_file):
-        # initial_sql_command = sql_command
-        pattern = re.compile(r"(?<=FROM )(.+? )", flags=re.IGNORECASE)
-        print("SQL COMMAND")
-        print(sql_command)
-        search = re.search(pattern, sql_command)
-        src_file = search.group(1)
-        print("SOURCE FILE")
-        print(src_file)
-        file_name = os.path.basename(src_file)
-        sql_command = re.sub(pattern, file_name, sql_command)
-        src_file = src_file.strip()
-        file_name = file_name.strip()
-        print("UPDATED SQL COMMAND")
-        print(sql_command)
-        parsed_sql = json.dumps(msp.parse(sql_command))
-        json_res = json.loads(parsed_sql)
-        parsed_select = TaskRunner.select_parser(json_res)
-        parsed_group_by = TaskRunner.group_by_parser(json_res)
-        print(json_res)
+    def run_map_reduce_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, src_file,
+                               dest, key):
+        is_server_source_file = True
         print("STARTED TO CHECK IF FILE IS ON CLUSTER")
-        is_file_on_cluster = TaskRunner.check_if_file_is_on_cluster(file_name)['is_file_on_cluster']
+        is_file_on_cluster = TaskRunner.check_if_file_is_on_cluster(dest)['is_file_on_cluster']
         print(is_file_on_cluster)
         print("FINISHED TO CHECK IF FILE IS ON CLUSTER")
         if not is_file_on_cluster:
             print("PUSHING FILE ON CLUSTER")
-            TaskRunner.push_file_on_cluster(src_file, file_name)
-        # src_file = TaskRunner.from_parser(json_res)['file_name']
-
-        # Never enters if statement
-        # if not is_server_source_file:
-        #     dest_file = os.path.dirname(src_file)
-        #     TaskRunner.push_file_on_cluster(src_file, dest_file)
-        # else:
+            TaskRunner.push_file_on_cluster(src_file, dest)
 
         dest_file = os.path.basename(src_file)
         TaskRunner.prepare_for_sql_query(dest_file)
-
-        TaskRunner.shuffle(src_file, parsed_group_by[0])
-        TaskRunner.reduce(is_reducer_in_file, reducer, is_server_source_file, src_file, dest_file,
-                          parsed_select=parsed_select, parsed_group_by=parsed_group_by)
-        TaskRunner.map(is_mapper_in_file, mapper, is_server_source_file, src_file, dest_file, parsed_select)
+        TaskRunner.shuffle(src_file, key)
+        TaskRunner.reduce(is_reducer_in_file, reducer, is_server_source_file, src_file, dest_file)
+        TaskRunner.map(is_mapper_in_file, mapper, is_server_source_file, src_file, dest_file)

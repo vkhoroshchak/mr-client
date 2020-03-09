@@ -37,10 +37,6 @@ class MapCommand(base_command.BaseCommand):
         encoded = dest_file
         self._data['destination_file'] = encoded
 
-    def set_parsed_select(self, parsed_select):
-        encoded = parsed_select
-        self._data['parsed_select'] = encoded
-
     def validate(self):
         if not self._data['mapper']:
             raise AttributeError('Mapper is empty!')

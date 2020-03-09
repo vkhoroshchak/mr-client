@@ -12,9 +12,9 @@ parser.add_argument("--src", "--source_file", action="store", help="Source file 
 parser.add_argument("--is_src", "--is_server_source_file", action="store", help="If source file is on server")
 parser.add_argument("--dest", "--destination_file", action="store", help="Destination file path")
 parser.add_argument("--rk", "--result_key", action="store", help="get result of a specified key")
-parser.add_argument("--sql", "--sql_query", action="store", help="SQL query")
 parser.add_argument("--rem", "--remove_files", action="store", help="clear all data")
 parser.add_argument("--pfc", "--push file on cluster", action="store", help="Pushes and stores file on cluster")
+parser.add_argument("--key", action="store")
 
 args = parser.parse_args()
 
@@ -47,8 +47,7 @@ def cli_parser(tr):
         is_reducer_in_file = True
         reducer = args.rf
 
-    tr.run_sql_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, args.sql,
-                       is_server_source_file=True)
+    tr.run_map_reduce_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, args.src, args.dest, args.key)
 
 
 if __name__ == '__main__':

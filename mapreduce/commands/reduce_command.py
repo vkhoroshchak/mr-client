@@ -44,10 +44,6 @@ class ReduceCommand(base_command.BaseCommand):
         if not self._data['destination_file']:
             raise AttributeError('Destination file in not mentioned!')
 
-    def set_parsed_sql(self, kwargs):
-        encoded = kwargs
-        self._data['parsed_sql'] = encoded
-
     def send(self, **kwargs):
         self.validate()
         return super(ReduceCommand, self).send('reduce')

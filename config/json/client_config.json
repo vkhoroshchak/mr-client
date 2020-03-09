@@ -2,7 +2,7 @@
   "max_file_chunk_size_in_bytes": 4096,
   "max_row_length": 123,
   "map_reduce": {
-    "field_delimiter": ";",
+    "field_delimiter": ",",
     "map_key_delimiter": "^",
     "mapper_code_max_length": 12000,
     "reducer_code_max_length": 12000
