@@ -201,6 +201,6 @@ class TaskRunner:
 
         dest_file = os.path.basename(src_file)
         TaskRunner.prepare_for_sql_query(dest_file)
-        TaskRunner.shuffle(src_file, key)
-        TaskRunner.reduce(is_reducer_in_file, reducer, is_server_source_file, src_file, dest_file)
+        #TaskRunner.shuffle(src_file, key)
+        #TaskRunner.reduce(is_reducer_in_file, reducer, is_server_source_file, src_file, dest_file)
         TaskRunner.map(is_mapper_in_file, mapper, is_server_source_file, src_file, dest_file)
