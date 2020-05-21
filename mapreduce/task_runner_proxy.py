@@ -171,36 +171,8 @@ class TaskRunner:
         mftifc.send()
 
     @staticmethod
-    def prepare_for_sql_query(dest_file):
-        # print("create_config_and_filesystem".upper())
-        TaskRunner.create_config_and_filesystem(dest_file)
-        # print("create_config_and_filesystem finished".upper())
-        # TaskRunner.push_file_on_cluster(dest_file, dest_file)
-        print("move_file_to_init_folder".upper())
-        TaskRunner.move_file_to_init_folder()
-        print("move_file_to_init_folder finished".upper())
-
-    @staticmethod
     def check_if_file_is_on_cluster(file_name):
         cifioc = check_if_file_is_on_cluster_command.CheckIfFileIsOnCLuster()
         cifioc.set_file_name(file_name)
         print("CHECKING FILE NAME " + file_name)
         return cifioc.send()
-
-    @staticmethod
-    def run_map_reduce_command(is_mapper_in_file, mapper, is_reducer_in_file, reducer, src_file,
-                               dest, key):
-        is_server_source_file = True
-        print("STARTED TO CHECK IF FILE IS ON CLUSTER")
-        is_file_on_cluster = TaskRunner.check_if_file_is_on_cluster(dest)['is_file_on_cluster']
-        print(is_file_on_cluster)
-        print("FINISHED TO CHECK IF FILE IS ON CLUSTER")
-        if not is_file_on_cluster:
-            print("PUSHING FILE ON CLUSTER")
-            TaskRunner.push_file_on_cluster(src_file, dest)
-
-        dest_file = os.path.basename(src_file)
-        TaskRunner.prepare_for_sql_query(dest_file)
-        #TaskRunner.shuffle(src_file, key)
-        #TaskRunner.reduce(is_reducer_in_file, reducer, is_server_source_file, src_file, dest_file)
-        TaskRunner.map(is_mapper_in_file, mapper, is_server_source_file, src_file, dest_file)
