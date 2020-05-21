@@ -3,8 +3,8 @@ from mapreduce.commands import base_command
 
 
 class MoveFileToInitFolderCommand(base_command.BaseCommand):
-    def __init__(self):
-        self._data = {}
+    def __init__(self, file_name):
+        self._data = {'file_name': file_name}
         super().__init__(self._data)
 
     def send(self, **kwargs):

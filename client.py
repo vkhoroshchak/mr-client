@@ -28,6 +28,8 @@ def cli_parser(tr):
     # TaskRunner.shuffle(src_file, key)
     # TaskRunner.reduce(is_reducer_in_file, reducer, is_server_source_file, src_file, dest_file)
     # tr.map(is_mapper_in_file, mapper, is_server_source_file, src_file, dest_file)
+    is_server_source_file = args.is_src is not None
+
     if args.map:
         if not args.mf:
             is_mapper_in_file = False
@@ -35,11 +37,18 @@ def cli_parser(tr):
         else:
             is_mapper_in_file = True
             mapper = args.mf
-
-        is_server_source_file = args.is_src is not None
         tr.map(is_mapper_in_file, mapper, is_server_source_file, args.src, args.dest)
+    elif args.shuffle:
+        tr.shuffle(args.src, args.key)
+    elif args.reduce:
+        if not args.rf:
+            is_reducer_in_file = False
+            reducer = args.r
+        else:
+            is_reducer_in_file = True
+            reducer = args.rf
+        tr.reduce(is_reducer_in_file, reducer, is_server_source_file, args.src, args.dest)
     elif args.pfc:
-
         print("STARTED TO CHECK IF FILE IS ON CLUSTER")
         is_file_on_cluster = tr.check_if_file_is_on_cluster(args.dest)['is_file_on_cluster']
         print(is_file_on_cluster)
@@ -49,7 +58,7 @@ def cli_parser(tr):
             tr.push_file_on_cluster(args.src, args.dest)
         else:
             print("move_file_to_init_folder".upper())
-            tr.move_file_to_init_folder()
+            tr.move_file_to_init_folder(args.src)
             print("move_file_to_init_folder finished".upper())
     elif args.rem:
         print("CLEAR_DATA_STARTED")

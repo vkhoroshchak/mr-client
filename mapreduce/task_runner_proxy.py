@@ -167,8 +167,8 @@ class TaskRunner:
         TaskRunner.main_func(src_file, dist['distribution'], dest_file)
 
     @staticmethod
-    def move_file_to_init_folder():
-        mftifc = move_file_to_init_folder_command.MoveFileToInitFolderCommand()
+    def move_file_to_init_folder(file_name):
+        mftifc = move_file_to_init_folder_command.MoveFileToInitFolderCommand(file_name)
         mftifc.send()
 
     @staticmethod
