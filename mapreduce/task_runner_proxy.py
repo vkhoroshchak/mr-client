@@ -30,7 +30,8 @@ class TaskRunner:
     @staticmethod
     def main_func(file, row_limit, dest, keep_headers=True):
         file_name, ext = os.path.splitext(os.path.basename(file))
-        output_name_template = dest + "_%s"
+        dest_name, dest_ext = os.path.splitext(dest)
+        output_name_template = dest_name + "_%s"
         output_name_template = output_name_template + ext
         with open(file, 'r', encoding='utf-8') as f:
             current_piece = 1
