@@ -39,7 +39,7 @@ def cli_parser(tr):
             mapper = args.mf
         tr.map(is_mapper_in_file, mapper, is_server_source_file, args.src, args.dest)
     elif args.shuffle:
-        tr.shuffle(args.src, args.key)
+        tr.shuffle(args.src)
     elif args.reduce:
         if not args.rf:
             is_reducer_in_file = False

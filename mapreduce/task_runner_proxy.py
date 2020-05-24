@@ -109,11 +109,10 @@ class TaskRunner:
         return mc.send()
 
     @staticmethod
-    def shuffle(source_file, key):
+    def shuffle(source_file):
         sc = shuffle_command.ShuffleCommand()
         sc.set_source_file(source_file)
         sc.set_field_delimiter(field_delimiter)
-        sc.set_key(key)
         return sc.send()
 
     @staticmethod
