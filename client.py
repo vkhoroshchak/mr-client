@@ -57,6 +57,11 @@ def cli_parser(tr):
             print("PUSHING FILE ON CLUSTER")
             tr.push_file_on_cluster(args.src, args.dest)
         else:
+            # tr.clear_data(str(args.src) + "," + str("0"))
+            print("create_config_and_filesystem".upper())
+            print(args.dest)
+            tr.create_config_and_filesystem(args.dest)
+            print("create_config_and_filesystem finished".upper())
             print("move_file_to_init_folder".upper())
             tr.move_file_to_init_folder(args.src)
             print("move_file_to_init_folder finished".upper())

@@ -163,6 +163,7 @@ class TaskRunner:
     def push_file_on_cluster(src_file, dest_file):
         dest_file = os.path.basename(src_file)
         dist = TaskRunner.create_config_and_filesystem(dest_file)
+
         TaskRunner.main_func(src_file, dist['distribution'], dest_file)
 
     @staticmethod
