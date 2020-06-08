@@ -11,10 +11,6 @@ class ShuffleCommand(base_command.BaseCommand):
         encoded = src_file
         self._data['source_file'] = encoded
 
-    def set_key(self, key):
-        encoded = key
-        self._data['key'] = encoded
-
     def set_field_delimiter(self, field_delimiter):
         encoded = field_delimiter
         self._data['field_delimiter'] = encoded

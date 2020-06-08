@@ -12,7 +12,8 @@ from mapreduce.commands import (
     refresh_table_command,
     write_command,
     move_file_to_init_folder_command,
-    check_if_file_is_on_cluster_command
+    check_if_file_is_on_cluster_command,
+    get_file_from_cluster_command
 )
 
 field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
@@ -20,6 +21,14 @@ field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
 
 
 class TaskRunner:
+
+    @staticmethod
+    def get_file_from_cluster(file_name, dest_file_name):
+        gffc = get_file_from_cluster_command.GetFileFromClusterCommand()
+        gffc.set_file_name(file_name)
+        gffc.set_dest_file_name(dest_file_name)
+        gffc.validate()
+        gffc.send()
 
     @staticmethod
     def create_config_and_filesystem(dest_file):
@@ -109,11 +118,10 @@ class TaskRunner:
         return mc.send()
 
     @staticmethod
-    def shuffle(source_file, key):
+    def shuffle(source_file):
         sc = shuffle_command.ShuffleCommand()
         sc.set_source_file(source_file)
         sc.set_field_delimiter(field_delimiter)
-        sc.set_key(key)
         return sc.send()
 
     @staticmethod
@@ -160,6 +168,7 @@ class TaskRunner:
     def push_file_on_cluster(src_file, dest_file):
         dest_file = os.path.basename(src_file)
         dist = TaskRunner.create_config_and_filesystem(dest_file)
+
         TaskRunner.main_func(src_file, dist['distribution'], dest_file)
 
     @staticmethod

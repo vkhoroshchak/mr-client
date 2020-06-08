@@ -18,6 +18,7 @@ parser.add_argument("--key", action="store")
 parser.add_argument("--map", action="store", help="Run map")
 parser.add_argument("--shuffle", action="store", help="Run shuffle")
 parser.add_argument("--reduce", action="store", help="Run reduce")
+parser.add_argument("--gffc", "--get_file_from_cluster", action="store", help="Get file from cluster")
 
 args = parser.parse_args()
 
@@ -34,7 +35,7 @@ def cli_parser(tr):
             mapper = args.mf
         tr.map(is_mapper_in_file, mapper, is_server_source_file, args.src, args.dest)
     elif args.shuffle:
-        tr.shuffle(args.src, args.key)
+        tr.shuffle(args.src)
     elif args.reduce:
         if not args.rf:
             is_reducer_in_file = False
@@ -48,10 +49,15 @@ def cli_parser(tr):
         if not is_file_on_cluster:
             tr.push_file_on_cluster(args.src, args.dest)
         else:
+            tr.create_config_and_filesystem(args.dest)
             tr.move_file_to_init_folder(args.src)
 
     elif args.rem:
         return tr.clear_data(args.rem)
+    elif args.gffc:
+        file_name = args.src
+        dest_file_name = args.dest
+        tr.get_file_from_cluster(file_name, dest_file_name)
 
 
 if __name__ == '__main__':
