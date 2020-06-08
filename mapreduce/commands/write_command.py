@@ -1,11 +1,11 @@
 from mapreduce.commands import base_command
 
 
-# TODO: add validation
 class WriteCommand(base_command.BaseCommand):
 
     def __init__(self):
         self._data = {}
+        super().__init__(self._data)
 
     def set_segment(self, segment):
         self._data['segment'] = segment
@@ -24,8 +24,6 @@ class WriteCommand(base_command.BaseCommand):
         if not self._data['data_node_ip']:
             raise AttributeError('Data node ip is not specified!')
 
-    def send(self):
+    def send(self, **kwargs):
         self.validate()
-        data = {'write': self._data}
-        super(WriteCommand, self).__init__(data)
-        return super(WriteCommand, self).send(self._data['write']['data_node_ip'])
+        return super().send('write', self._data['data_node_ip'])

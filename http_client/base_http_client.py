@@ -1,4 +1,3 @@
-import json
 import os
 
 import requests
@@ -9,16 +8,9 @@ address = "http://" + config_provider.ConfigProvider.get_arbiter_address(os.path
 access_token = config_provider.ConfigProvider.get_access_token(os.path.join('json', 'cluster_access.json'))
 
 
-def post(data, ip=address):
-    url = ip
-
-    params = {
-        'access_token': access_token,
-    }
-
-    response = requests.post(url, params=params,
-                             data=json.dumps(data))
-
+def post(data, command, ip=address, ):
+    url = f"{ip}/command/{command}"
+    response = requests.post(url, json=data)
     response.raise_for_status()
 
     return response.json()
