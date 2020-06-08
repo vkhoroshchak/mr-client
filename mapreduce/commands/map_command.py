@@ -39,9 +39,8 @@ class MapCommand(base_command.BaseCommand):
 
     def validate(self):
         if not self._data['mapper']:
-            raise AttributeError('Mapper is empty!')
-        # if 'source_file' and 'server_source_file' not in self._data:
-        #     raise AttributeError('Source file in not mentioned!')
+            self.error = AttributeError('Mapper is empty!')
+            raise self.error
         if not self._data['destination_file']:
             raise AttributeError('Destination file in not mentioned!')
 

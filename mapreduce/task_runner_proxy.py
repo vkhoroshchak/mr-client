@@ -131,9 +131,6 @@ class TaskRunner:
             rc.set_source_file(source_file)
 
         rc.set_field_delimiter(field_delimiter)
-        print("DESTDESTDEST")
-        print(destination_file)
-        print("DESTDESTDEST")
         rc.set_destination_file(destination_file)
         return rc.send()
 
@@ -154,7 +151,6 @@ class TaskRunner:
     def clear_data(folder_name):
         clear_data = clear_data_command.ClearDataCommand()
         folder_name_arr = folder_name.split(',')
-        print(folder_name_arr)
         clear_data.set_folder_name(folder_name_arr[0])
         clear_data.set_remove_all_data(bool(int(folder_name_arr[1])))
 
@@ -175,5 +171,4 @@ class TaskRunner:
     def check_if_file_is_on_cluster(file_name):
         cifioc = check_if_file_is_on_cluster_command.CheckIfFileIsOnCLuster()
         cifioc.set_file_name(file_name)
-        print("CHECKING FILE NAME " + file_name)
         return cifioc.send()

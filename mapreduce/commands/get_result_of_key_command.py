@@ -1,7 +1,6 @@
 from mapreduce.commands import base_command
 
 
-# TODO: add validation
 class GetResultOfKeyCommand(base_command.BaseCommand):
 
     def __init__(self):

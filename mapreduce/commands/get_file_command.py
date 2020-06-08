@@ -1,7 +1,6 @@
 from mapreduce.commands import base_command
 
 
-# TODO: add validation
 class GetFileCommand(base_command.BaseCommand):
 
     def __init__(self):

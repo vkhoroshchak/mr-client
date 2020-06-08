@@ -3,7 +3,6 @@ import base64
 from mapreduce.commands import base_command
 
 
-# TODO: refactor validation
 class ReduceCommand(base_command.BaseCommand):
 
     def __init__(self):

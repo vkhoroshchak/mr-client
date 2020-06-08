@@ -1,7 +1,6 @@
 from http_client import base_http_client
 
 
-# TODO: add validation
 class BaseCommand(object):
     def __init__(self, data):
         self._data = data

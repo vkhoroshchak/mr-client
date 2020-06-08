@@ -1,4 +1,3 @@
-import base64
 from mapreduce.commands import base_command
 
 

@@ -1,4 +1,3 @@
-import json
 import os
 
 import requests
@@ -11,9 +10,7 @@ access_token = config_provider.ConfigProvider.get_access_token(os.path.join('jso
 
 def post(data, command, ip=address, ):
     url = f"{ip}/command/{command}"
-
     response = requests.post(url, json=data)
-
     response.raise_for_status()
 
     return response.json()
