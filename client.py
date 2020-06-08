@@ -19,6 +19,7 @@ parser.add_argument("--key", action="store")
 parser.add_argument("--map", action="store", help="Run map")
 parser.add_argument("--shuffle", action="store", help="Run shuffle")
 parser.add_argument("--reduce", action="store", help="Run reduce")
+parser.add_argument("--gffc", "--get_file_from_cluster", action="store", help="Get file from cluster")
 
 args = parser.parse_args()
 
@@ -69,6 +70,10 @@ def cli_parser(tr):
         print("CLEAR_DATA_STARTED")
         print("CLEAR_DATA_FINISHED!")
         return tr.clear_data(args.rem)
+    elif args.gffc:
+        file_name = args.src
+        dest_file_name = args.dest
+        tr.get_file_from_cluster(file_name, dest_file_name)
 
     # if args.pfc:
     #     src_file, dest_file = args.pfc.split(",")
