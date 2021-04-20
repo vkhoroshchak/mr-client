@@ -1,6 +1,6 @@
 import argparse
 
-from mapreduce import task_runner_proxy
+import mapreduce.task_runner_proxy as task
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--m", "--mapper", action="store", help="Set mapper as a content")
@@ -23,7 +23,7 @@ parser.add_argument("--gffc", "--get_file_from_cluster", action="store", help="G
 args = parser.parse_args()
 
 
-def cli_parser(tr):
+def cli_parser():
     is_server_source_file = args.is_src is not None
 
     if args.map:
@@ -33,9 +33,9 @@ def cli_parser(tr):
         else:
             is_mapper_in_file = True
             mapper = args.mf
-        tr.map(is_mapper_in_file, mapper, is_server_source_file, args.src, args.dest)
+        task.map(is_mapper_in_file, mapper, is_server_source_file, args.src, args.dest)
     elif args.shuffle:
-        tr.shuffle(args.src)
+        task.shuffle(args.src)
     elif args.reduce:
         if not args.rf:
             is_reducer_in_file = False
@@ -43,23 +43,22 @@ def cli_parser(tr):
         else:
             is_reducer_in_file = True
             reducer = args.rf
-        tr.reduce(is_reducer_in_file, reducer, is_server_source_file, args.src, args.dest)
+        task.reduce(is_reducer_in_file, reducer, is_server_source_file, args.src, args.dest)
     elif args.pfc:
-        is_file_on_cluster = tr.check_if_file_is_on_cluster(args.dest)['is_file_on_cluster']
+        is_file_on_cluster = task.check_if_file_is_on_cluster(args.dest)['is_file_on_cluster']
         if not is_file_on_cluster:
-            tr.push_file_on_cluster(args.src, args.dest)
+            task.push_file_on_cluster(args.src)
         else:
-            tr.create_config_and_filesystem(args.dest)
-            tr.move_file_to_init_folder(args.src)
+            task.create_config_and_filesystem(args.dest)
+            task.move_file_to_init_folder(args.src)
 
     elif args.rem:
-        return tr.clear_data(args.rem)
+        return task.clear_data(args.rem)
     elif args.gffc:
         file_name = args.src
         dest_file_name = args.dest
-        tr.get_file_from_cluster(file_name, dest_file_name)
+        task.get_file_from_cluster(file_name, dest_file_name)
 
 
 if __name__ == '__main__':
-    tr = task_runner_proxy.TaskRunner()
-    cli_parser(tr)
+    cli_parser()
