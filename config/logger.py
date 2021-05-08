@@ -1,11 +1,13 @@
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 # Logger
 
 MAX_LOG_SIZE = 1 * 10 ** 6  # 1MB
-LOG_FILE_NAME = 'client.log'
+LOG_FILE_NAME = Path('logs', 'client.log')
+LOG_FILE_NAME.parent.mkdir(parents=True, exist_ok=True)
 
 
 class BaseLogger:

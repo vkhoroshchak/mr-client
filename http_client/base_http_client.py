@@ -4,7 +4,7 @@ import requests
 
 from config.config_provider import ConfigProvider
 
-config_provider = ConfigProvider(os.path.join('json', 'cluster_access.json'))
+config_provider = ConfigProvider(os.path.join('cluster_access.json'))
 
 address = f"http://{config_provider.arbiter_address}"
 

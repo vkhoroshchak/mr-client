@@ -1,53 +1,23 @@
 import os
 
+from fastapi import UploadFile
+
+import parsers.sql_parser as sql_parser
+from config.config_provider import ConfigProvider
+from config.logger import client_logger
 from mapreduce import commands
+
+logger = client_logger.get_logger(__name__)
+
+config_provider = ConfigProvider(os.path.join('..', 'config', 'client_config.json'))
 
 
 def get_file_from_cluster(file_name, dest_file_name):
     return commands.GetFileFromClusterCommand(file_name, dest_file_name).send_command()
 
 
-def create_config_and_filesystem(dest_file):
-    return commands.CreateConfigAndFilesystem(dest_file).send_command()
-
-
-# TODO: refactor
-def main_func(file, row_limit, dest, keep_headers=True):
-    file_name, ext = os.path.splitext(os.path.basename(file))
-    dest_name, dest_ext = os.path.splitext(dest)
-    output_name_template = dest_name + "_%s"
-    output_name_template = output_name_template + ext
-    with open(file, 'r', encoding='utf-8') as f:
-        current_piece = 1
-        headers = f.readline()
-        current_limit = row_limit
-
-        dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
-
-        for i, row in enumerate(f):
-
-            if i + 1 > current_limit:
-                current_piece += 1
-                current_limit = row_limit * current_piece
-                if keep_headers:
-                    dict_item["content"]["headers"] = headers
-
-                dict_item["file_name"] = output_name_template % (current_piece - 1)
-                ip = append(dest)['data_node_ip']
-                write(dict_item["file_name"], dict_item["content"], ip)
-                refresh_table(dest, ip, dict_item["file_name"])
-                dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
-
-            dict_item["content"]["items"].append(row)
-
-        dict_item["file_name"] = output_name_template % current_piece
-
-        if keep_headers:
-            dict_item["content"]["headers"] = headers
-
-        ip = append(dest)['data_node_ip']
-        write(dict_item["file_name"], dict_item["content"], ip)
-        refresh_table(dest, ip, output_name_template % current_piece)
+def create_config_and_filesystem(file_name):
+    return commands.CreateConfigAndFilesystem(file_name).send_command()
 
 
 def append(file_name):
@@ -62,17 +32,17 @@ def refresh_table(file_name, ip, segment_name):
     return commands.RefreshTableCommand(file_name, ip, segment_name).send_command()
 
 
-def map(is_mapper_in_file, mapper, is_server_source_file, source_file, destination_file):
-    mc = commands.MapCommand(is_mapper_in_file, mapper, is_server_source_file, source_file, destination_file)
+def start_map_phase(is_mapper_in_file, mapper, is_server_source_file, source_file):
+    mc = commands.MapCommand(is_mapper_in_file, mapper, is_server_source_file, source_file)
     return mc.send_command()
 
 
-def shuffle(source_file):
+def start_shuffle_phase(source_file):
     return commands.ShuffleCommand(source_file).send_command()
 
 
-def reduce(is_reducer_in_file, reducer, is_server_source_file, source_file, destination_file):
-    rc = commands.ReduceCommand(is_reducer_in_file, reducer, is_server_source_file, source_file, destination_file)
+def start_reduce_phase(is_reducer_in_file, reducer, is_server_source_file, source_file):
+    rc = commands.ReduceCommand(is_reducer_in_file, reducer, is_server_source_file, source_file)
     return rc.send_command()
 
 
@@ -84,17 +54,43 @@ def get_file(file_name, ip=None):
     return commands.GetFileCommand(file_name).send_command(ip=ip)
 
 
-def clear_data(folder_name):
-    folder_name, remove_all = folder_name.split(',')
-    remove_all = bool(int(remove_all))
-    return commands.ClearDataCommand(folder_name, remove_all).send_command()
+def clear_data(file_name: str, clear_all: bool):
+    return commands.ClearDataCommand(file_name, clear_all).send_command()
 
 
-def push_file_on_cluster(src_file):
-    dest_file = os.path.basename(src_file)
-    dist = create_config_and_filesystem(dest_file)
+def push_file_on_cluster(uploaded_file: UploadFile):
+    row_limit = create_config_and_filesystem(uploaded_file.filename).get('distribution')
 
-    main_func(src_file, dist['distribution'], dest_file)
+    file_name, file_ext = os.path.splitext(uploaded_file.filename)
+    output_name_template = f"{file_name}_%s{file_ext}"
+    file_obj = uploaded_file.file._file
+    headers = next(file_obj).decode("utf-8")
+
+    with file_obj as f:
+        counter = 1
+        chunk = []
+
+        for line in f:
+            chunk.append(line.decode("utf-8"))
+            if len(chunk) > row_limit:
+                logger.info(f"Send chunk: {output_name_template % counter} to data node")
+                push_file_chunk_on_cluster(file_name=uploaded_file.filename,
+                                           chunk_name=output_name_template % counter,
+                                           chunk={"headers": headers, "items": chunk})
+                chunk = []
+                counter += 1
+        # push rest of file
+        logger.info(f"Send last chunk: {output_name_template % counter} to data node")
+        push_file_chunk_on_cluster(file_name=uploaded_file.filename,
+                                   chunk_name=output_name_template % counter,
+                                   chunk={"headers": headers, "items": chunk})
+
+
+def push_file_chunk_on_cluster(file_name, chunk_name, chunk):
+    ip = append(file_name)['data_node_ip']
+    logger.info(f"Sending chunk {chunk_name} to data node with ip: {ip}")
+    write(chunk_name, chunk, ip)
+    refresh_table(file_name, ip, chunk_name)
 
 
 def move_file_to_init_folder(file_name):
@@ -103,3 +99,63 @@ def move_file_to_init_folder(file_name):
 
 def check_if_file_is_on_cluster(file_name):
     return commands.CheckIfFileIsOnCLuster(file_name).send_command()
+
+
+# TODO: Refactor
+def run_tasks(sql):
+    parsed_sql = sql if type(sql) is dict else sql_parser.SQLParser.sql_parser(sql)
+    field_delimiter = config_provider.field_delimiter
+    from_file = parsed_sql['from']
+
+    if type(from_file) is dict:
+        from_file = run_tasks(from_file)
+    if type(from_file) is tuple:
+        reducer = sql_parser.custom_reducer(parsed_sql, field_delimiter)
+
+        for file_name in from_file:
+            own_select = sql_parser.SQLParser.split_select_cols(file_name, parsed_sql['select'])
+            key_col = sql_parser.SQLParser.get_key_col(parsed_sql, file_name)
+
+            mapper = sql_parser.custom_mapper(key_col, own_select, field_delimiter)
+
+            start_map_phase(
+                is_mapper_in_file=False,
+                mapper=mapper,
+                is_server_source_file=True,
+                source_file=file_name,
+            )
+            start_shuffle_phase(file_name)
+
+        file_name = from_file[0]
+
+        start_reduce_phase(
+            is_reducer_in_file=False,
+            reducer=reducer,
+            is_server_source_file=True,
+            source_file=file_name,
+        )
+        return file_name
+
+    else:
+        key_col = sql_parser.SQLParser.get_key_col(parsed_sql, from_file)
+        reducer = sql_parser.custom_reducer(parsed_sql, field_delimiter)
+        mapper = sql_parser.custom_mapper(key_col, parsed_sql['select'], field_delimiter)
+
+        if type(from_file) is tuple:
+            from_file = from_file[0]
+
+        start_map_phase(
+            is_mapper_in_file=False,
+            mapper=mapper,
+            is_server_source_file=True,
+            source_file=from_file,
+        )
+        start_shuffle_phase(from_file)
+
+        start_reduce_phase(
+            is_reducer_in_file=False,
+            reducer=reducer,
+            is_server_source_file=True,
+            source_file=from_file,
+        )
+        return from_file

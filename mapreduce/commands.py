@@ -4,10 +4,11 @@ import os
 from config.config_provider import ConfigProvider
 from config.logger import client_logger
 from http_client import base_http_client
+from fastapi import status, HTTPException
 
 logger = client_logger.get_logger(__name__)
 
-field_delimiter = ConfigProvider(os.path.join('..', 'config', 'json', 'client_config.json')).field_delimiter
+field_delimiter = ConfigProvider(os.path.join('..', 'config', 'client_config.json')).field_delimiter
 
 
 class BaseCommand(object):
@@ -32,7 +33,8 @@ class CheckIfFileIsOnCLuster(BaseCommand):
 
     def validate(self):
         if not self.command_body.get('file_name'):
-            raise AttributeError('File name is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='File name is not specified!')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -47,7 +49,8 @@ class AppendCommand(BaseCommand):
 
     def validate(self):
         if not self.command_body['file_name']:
-            raise AttributeError('Destination file is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Destination file is not specified!')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -64,7 +67,8 @@ class ClearDataCommand(BaseCommand):
 
     def validate(self):
         if not self.command_body.get('folder_name'):
-            raise AttributeError('Folder name is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Folder name is not specified!')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -79,7 +83,8 @@ class CreateConfigAndFilesystem(BaseCommand):
 
     def validate(self):
         if not self.command_body.get('file_name'):
-            raise AttributeError('File_name is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='File name is not specified!')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -109,9 +114,11 @@ class GetFileFromClusterCommand(BaseCommand):
 
     def validate(self):
         if not self.command_body.get('file_name'):
-            raise AttributeError('File name is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='File name is not specified!')
         if not self.command_body.get('dest_file_name'):
-            raise AttributeError('Dest file name is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Dest file name is not specified!')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -128,11 +135,16 @@ class GetResultOfKeyCommand(BaseCommand):
 
     def validate(self):
         if not self.command_body.get('key'):
-            raise AttributeError('Key is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Key is not specified!')
+
         if not self.command_body.get('file_name'):
-            raise AttributeError('File name is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='File name is not specified!')
+
         if not self.command_body.get('field_delimiter'):
-            raise AttributeError('Field delimiter is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Field delimiter is not specified!')
 
     def send_command(self, ip=None, **kwargs):
         self.validate()
@@ -143,12 +155,10 @@ class GetResultOfKeyCommand(BaseCommand):
 # TODO: To finish Refactoring
 class MapCommand(BaseCommand):
 
-    def __init__(self, is_mapper_in_file, mapper, is_server_source_file, source_file, destination_file):
+    def __init__(self, is_mapper_in_file, mapper, is_server_source_file, source_file):
         self.command_body = {"field_delimiter": field_delimiter}
-
         self._set_mapper_from_file(mapper) if is_mapper_in_file else self._set_mapper(mapper)
         self._set_server_source_file(source_file) if is_server_source_file else self._set_source_file(source_file)
-        self._set_destination_file(destination_file)
 
         super().__init__(self.command_body)
 
@@ -172,15 +182,10 @@ class MapCommand(BaseCommand):
         encoded = src_file
         self.command_body['source_file'] = encoded
 
-    def _set_destination_file(self, dest_file):
-        encoded = dest_file
-        self.command_body['destination_file'] = encoded
-
     def validate(self):
         if not self.command_body.get('mapper'):
-            raise AttributeError('Mapper is empty!')
-        if not self.command_body.get('destination_file'):
-            raise AttributeError('Destination file in not mentioned!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Mapper is empty!')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -189,11 +194,11 @@ class MapCommand(BaseCommand):
 
 class ReduceCommand(BaseCommand):
 
-    def __init__(self, is_reducer_in_file, reducer, is_server_source_file, source_file, destination_file):
+    def __init__(self, is_reducer_in_file, reducer, is_server_source_file, source_file):
         self.command_body = {"field_delimiter": field_delimiter}
         self._set_reducer_from_file(reducer) if is_reducer_in_file else self._set_reducer(reducer)
         self._set_server_source_file(source_file) if is_server_source_file else self._set_source_file(source_file)
-        self._set_destination_file(destination_file)
+
         super().__init__(self.command_body)
 
     def _set_reducer_from_file(self, path):
@@ -216,15 +221,10 @@ class ReduceCommand(BaseCommand):
         encoded = src_file
         self.command_body['source_file'] = encoded
 
-    def _set_destination_file(self, dest_file):
-        encoded = dest_file
-        self.command_body['destination_file'] = encoded
-
     def validate(self):
         if not self.command_body.get('reducer'):
-            raise AttributeError('Reducer is empty!')
-        if not self.command_body.get('destination_file'):
-            raise AttributeError('Destination file in not mentioned!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Reducer is empty!')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -255,9 +255,12 @@ class RefreshTableCommand(BaseCommand):
 
     def validate(self):
         if not self.command_body.get('file_name'):
-            raise AttributeError('File name is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='File name is not specified!')
+
         if not self.command_body.get('segment_name'):
-            raise AttributeError('Segment name is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Segment name is not specified!')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -293,11 +296,16 @@ class WriteCommand(BaseCommand):
 
     def validate(self):
         if not self.command_body.get('segment'):
-            raise AttributeError('Segment is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Segment is not specified!')
+
         if not self.command_body.get('file_name'):
-            raise AttributeError('File name is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='File name is not specified!')
+
         if not self.command_body.get('data_node_ip'):
-            raise AttributeError('Data node ip is not specified!')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='Data node ip is not specified!')
 
     def send_command(self, **kwargs):
         self.validate()

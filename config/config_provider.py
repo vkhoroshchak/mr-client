@@ -1,5 +1,5 @@
 import json
-import os.path
+import os
 
 
 class ConfigProvider:
@@ -14,7 +14,7 @@ class ConfigProvider:
 
     @property
     def access_token(self):
-        return self.config.get('access_token')
+        return os.environ.get("ACCESS_TOKEN")
 
     @property
     def map_key_delimiter(self):
