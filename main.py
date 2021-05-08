@@ -34,6 +34,7 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
     task.run_tasks(sql)
 
 
+
 @app.delete("/remove-file-from-cluster", response_description="The file was successfully removed from the cluster!")
 async def remove_file_from_cluster(file_name: str, clear_all: bool):
     task.clear_data(file_name, clear_all)
