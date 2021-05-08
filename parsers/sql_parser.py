@@ -42,7 +42,10 @@ class SQLParser:
     @staticmethod
     def join_parser(data):
         join_info = data['from'][1]
-        join_type = next(iter(join_info)).split(' ')[0]
+        join_type = next(iter(join_info), None)
+
+        if join_type:
+            join_type = join_type.split(' ')[0]
         if join_type == "join":
             join_type = "inner"
 

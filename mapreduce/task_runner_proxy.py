@@ -64,7 +64,9 @@ def push_file_on_cluster(uploaded_file: UploadFile):
     file_name, file_ext = os.path.splitext(uploaded_file.filename)
     output_name_template = f"{file_name}_%s{file_ext}"
     file_obj = uploaded_file.file._file
-    headers = next(file_obj).decode("utf-8")
+    headers = next(file_obj, None)
+    if headers:
+        headers = headers.decode("utf-8")
 
     with file_obj as f:
         counter = 1
