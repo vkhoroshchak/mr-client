@@ -171,10 +171,10 @@ class SQLParser:
                 res[oper]["left"] = left
                 res[oper]["right"] = right if not type(right) is dict else right["literal"]
             elif oper.endswith("between"):
-                l = condition_dict[oper]
-                col = l[0]
-                left = l[1] if not type(l[1]) is dict else l[1]["literal"]
-                right = l[2] if not type(l[2]) is dict else l[2]["literal"]
+                literal = condition_dict[oper]
+                col = literal[0]
+                left = literal[1] if not type(literal[1]) is dict else literal[1]["literal"]
+                right = literal[2] if not type(literal[2]) is dict else literal[2]["literal"]
 
                 if oper == "not_between":
                     first_oper = "<"
@@ -189,9 +189,9 @@ class SQLParser:
                 res[oper]["right"] = right
                 res[oper]["operator"] = "&" if oper == "between" else "|"
             elif oper.endswith("like"):
-                l = condition_dict[oper]
-                column = l[0]
-                pattern = l[1]["literal"]
+                literal = condition_dict[oper]
+                column = literal[0]
+                pattern = literal[1]["literal"]
                 escaped_chars = [".", "^", "$", "*", "+", "?", "{", "}", "\\", "[", "]", "|", "(", ")"]
                 escaped_pattern = pattern
                 for esc in escaped_chars:
@@ -203,9 +203,9 @@ class SQLParser:
                 res[oper]["column"] = column
                 res[oper]["re_pattern"] = re_pattern
             elif oper.endswith("in"):
-                l = condition_dict[oper]
-                column = l[0]
-                list_of_literals = l[1] if not type(l[1]) is dict else l[1]['literal']
+                literal = condition_dict[oper]
+                column = literal[0]
+                list_of_literals = literal[1] if not type(literal[1]) is dict else literal[1]['literal']
                 not_keyword = "~" if oper == "nin" else ""
                 res[oper]["not_keyword"] = not_keyword
                 res[oper]["column"] = column
@@ -291,7 +291,7 @@ class SQLParser:
 
 def custom_reducer(parsed_sql, field_delimiter):
     def where_dict_to_command(where_dict):
-        command = f""
+        command = ""
         oper = list(where_dict.keys())[0]
         results = where_dict[oper]
         if oper.endswith("in"):
@@ -309,7 +309,7 @@ def custom_reducer(parsed_sql, field_delimiter):
         return command
 
     from_file = parsed_sql["from"]
-    res = f"""
+    res = """
 def custom_reducer(file_name, dest):
     import pandas as pd
     """
@@ -323,7 +323,11 @@ def custom_reducer(file_name, dest):
     right_df = right_df.drop(columns=['key_column'])
     left_df_col_name = '{parsed_join['on'][0].split('.')[1]}'
     right_df_col_name = '{parsed_join['on'][1].split('.')[1]}'
-    data_frame = pd.merge(left=left_df, how='{parsed_join['join_type']}', right=right_df, left_on=left_df_col_name, right_on=right_df_col_name)
+    data_frame = pd.merge(left=left_df,
+                          how='{parsed_join['join_type']}',
+                          right=right_df,
+                          left_on=left_df_col_name,
+                          right_on=right_df_col_name)
     """
     else:
         res += f"""
@@ -356,7 +360,6 @@ def custom_reducer(file_name, dest):
             else:
                 data_frame[i['new_name']] = data_frame.groupby(i['new_name'])[i['new_name']].transform(
                     i['aggregate_f_name'])
-    
     data_frame = data_frame.drop_duplicates({groupby_col}['key_name'])
     """
     select_cols = [i['new_name'].split(".")[-1] for i in select_cols]
@@ -365,7 +368,7 @@ def custom_reducer(file_name, dest):
     data_frame = data_frame[{select_cols}]
     """
     else:
-        res += f"""
+        res += """
     data_frame = data_frame.drop(columns='key_column')
     """
     if "orderby" in parsed_sql:

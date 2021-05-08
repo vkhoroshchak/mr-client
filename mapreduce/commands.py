@@ -1,10 +1,11 @@
 import base64
 import os
 
+from fastapi import status, HTTPException
+
 from config.config_provider import ConfigProvider
 from config.logger import client_logger
 from http_client import base_http_client
-from fastapi import status, HTTPException
 
 logger = client_logger.get_logger(__name__)
 
@@ -43,12 +44,12 @@ class CheckIfFileIsOnCLuster(BaseCommand):
 
 class AppendCommand(BaseCommand):
 
-    def __init__(self, file_name):
-        self.command_body = {'file_name': file_name}
+    def __init__(self, file_id):
+        self.command_body = {'file_id': file_id}
         super().__init__(self.command_body)
 
     def validate(self):
-        if not self.command_body['file_name']:
+        if not self.command_body['file_id']:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail='Destination file is not specified!')
 
@@ -247,16 +248,16 @@ class RefreshTableCommand(BaseCommand):
 
     def __init__(self, file_name, ip, segment_name):
         self.command_body = {
-            "file_name": file_name,
+            "file_id": file_name,
             "ip": ip,
             "segment_name": segment_name,
         }
         super().__init__(self.command_body)
 
     def validate(self):
-        if not self.command_body.get('file_name'):
+        if not self.command_body.get('file_id'):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                                detail='File name is not specified!')
+                                detail='File id is not specified!')
 
         if not self.command_body.get('segment_name'):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

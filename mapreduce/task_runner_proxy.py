@@ -20,16 +20,16 @@ def create_config_and_filesystem(file_name):
     return commands.CreateConfigAndFilesystem(file_name).send_command()
 
 
-def append(file_name):
-    return commands.AppendCommand(file_name).send_command()
+def append(file_id):
+    return commands.AppendCommand(file_id).send_command()
 
 
 def write(file_name, segment, data_node_ip):
     return commands.WriteCommand(file_name, segment, data_node_ip).send_command()
 
 
-def refresh_table(file_name, ip, segment_name):
-    return commands.RefreshTableCommand(file_name, ip, segment_name).send_command()
+def refresh_table(file_id, ip, segment_name):
+    return commands.RefreshTableCommand(file_id, ip, segment_name).send_command()
 
 
 def start_map_phase(is_mapper_in_file, mapper, is_server_source_file, source_file):
@@ -59,7 +59,10 @@ def clear_data(file_name: str, clear_all: bool):
 
 
 def push_file_on_cluster(uploaded_file: UploadFile):
-    row_limit = create_config_and_filesystem(uploaded_file.filename).get('distribution')
+    response = create_config_and_filesystem(uploaded_file.filename)
+
+    row_limit = response.get("distribution")
+    file_id = response.get("file_id")
 
     file_name, file_ext = os.path.splitext(uploaded_file.filename)
     output_name_template = f"{file_name}_%s{file_ext}"
@@ -76,23 +79,25 @@ def push_file_on_cluster(uploaded_file: UploadFile):
             chunk.append(line.decode("utf-8"))
             if len(chunk) > row_limit:
                 logger.info(f"Send chunk: {output_name_template % counter} to data node")
-                push_file_chunk_on_cluster(file_name=uploaded_file.filename,
+                push_file_chunk_on_cluster(file_id=file_id,
                                            chunk_name=output_name_template % counter,
                                            chunk={"headers": headers, "items": chunk})
                 chunk = []
                 counter += 1
         # push rest of file
         logger.info(f"Send last chunk: {output_name_template % counter} to data node")
-        push_file_chunk_on_cluster(file_name=uploaded_file.filename,
+        push_file_chunk_on_cluster(file_id=file_id,
                                    chunk_name=output_name_template % counter,
                                    chunk={"headers": headers, "items": chunk})
 
+    return file_id
 
-def push_file_chunk_on_cluster(file_name, chunk_name, chunk):
-    ip = append(file_name)['data_node_ip']
+
+def push_file_chunk_on_cluster(file_id, chunk_name, chunk):
+    ip = append(file_id)
     logger.info(f"Sending chunk {chunk_name} to data node with ip: {ip}")
     write(chunk_name, chunk, ip)
-    refresh_table(file_name, ip, chunk_name)
+    refresh_table(file_id, ip, chunk_name)
 
 
 def move_file_to_init_folder(file_name):

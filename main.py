@@ -1,12 +1,11 @@
 from typing import List
 
-# from fastapi.responses import StreamingResponse
+# from fastapi.responses import FileResponse
 from fastapi import (
     FastAPI,
     File,
     UploadFile,
     Body,
-
 )
 from fastapi.responses import JSONResponse
 
@@ -42,15 +41,15 @@ async def remove_file_from_cluster(file_name: str, clear_all: bool):
 
 @app.post("/push-file-on-cluster", response_description="The file was successfully uploaded to the cluster!")
 async def push_file_on_cluster(file: UploadFile = File(...)):
-    task.push_file_on_cluster(file)
-    return JSONResponse("The file was successfully uploaded to the cluster!")
+    file_id = task.push_file_on_cluster(file)
+    return {"file_id": file_id}
 
 
 # TODO: To think about the implementation
 @app.post("/get-file-from-cluster")
-async def get_file_from_cluster(file_id):
-    pass
+async def get_file_from_cluster(file_name: str):
     # get_file
+    pass
     # some_file_path = ""
-    # file_like = open(some_file_path, mode="rb")
-    # return StreamingResponse(file_like, media_type="video/mp4")
+
+    # return FileResponse(some_file_path, filename=file_name, media_type="text/csv")

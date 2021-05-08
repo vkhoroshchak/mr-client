@@ -11,6 +11,7 @@ address = f"http://{config_provider.arbiter_address}"
 
 def post(data, command, ip=address):
     url = f"{ip}/command/{command}"
-    response = requests.post(url, json=data)
+    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+    response = requests.post(url, json=data, headers=headers)
 
     return response.json()
