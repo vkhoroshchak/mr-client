@@ -147,7 +147,7 @@ class SQLParser:
         return res
 
     @staticmethod
-    def where_parser(sql_where):
+    def where_parser(sql_where):  # noqa: C901
         def process_condition_dict(condition_dict):
             oper = list(condition_dict.keys())[0]
             res = {
@@ -250,7 +250,7 @@ class SQLParser:
         return col, sort_asc
 
     @staticmethod
-    def sql_parser(sql_query):
+    def sql_parser(sql_query):  # noqa: C901
         if type(sql_query) is dict:
             while 'value' in sql_query:
                 sql_query = sql_query['value']
