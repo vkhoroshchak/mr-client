@@ -301,38 +301,39 @@ class SQLParser:
 
 def custom_reducer(parsed_sql, field_delimiter):
     def where_dict_to_command(where_dict):
-        command = ""
         oper = list(where_dict.keys())[0]
         results = where_dict[oper]
         if oper.endswith("in"):
-            command += f"{results['not_keyword']}data_frame.{results['column'].title()}.isin(" \
+            comm = f"{results['not_keyword']}data_frame.{results['column'].title()}.isin(" \
                        f"{results['list_of_literals']})"
         elif oper.endswith("like"):
-            command += f"{results['not_keyword']}data_frame.{results['column'].title()}.apply(str).str.match" \
+            comm = f"{results['not_keyword']}data_frame.{results['column'].title()}.apply(str).str.match" \
                        f"('{results['re_pattern']}')"
         elif oper.endswith("between"):
-            command += f"(data_frame.{results['col'].title()} {results['first_oper']} " \
+            comm = f"(data_frame.{results['col'].title()} {results['first_oper']} " \
                        f"{results['left']}) {results['operator']} (data_frame.{results['col'].title()} " \
                        f"{results['second_oper']} {results['right']})"
         else:
-            command += f"data_frame.{results['left'].title()} {results['operator']} {results['right']}"
-        return command
+            comm = f"data_frame.{results['left'].title()} {results['operator']} {results['right']}"
+        return comm
 
     from_file = parsed_sql["from"]
     res = """
 def custom_reducer(file_name, dest):
     import pandas as pd
     """
-    if type(from_file) is tuple:
+    if isinstance(from_file, tuple):
         parsed_join = parsed_sql["join"]
+        left_df_col_name = parsed_join['on'][0].split('.')[1]
+        right_df_col_name = parsed_join['on'][1].split('.')[1]
         res += f"""
     l_file_name, r_file_name = file_name
     left_df = pd.read_csv(l_file_name)
     right_df = pd.read_csv(r_file_name)
     left_df = left_df.drop(columns=['key_column'])
     right_df = right_df.drop(columns=['key_column'])
-    left_df_col_name = '{parsed_join['on'][0].split('.')[1]}'
-    right_df_col_name = '{parsed_join['on'][1].split('.')[1]}'
+    left_df_col_name = '{left_df_col_name}'
+    right_df_col_name = '{right_df_col_name}'
     data_frame = pd.merge(left=left_df,
                           how='{parsed_join['join_type']}',
                           right=right_df,
@@ -343,8 +344,8 @@ def custom_reducer(file_name, dest):
         res += f"""
     data_frame = pd.read_csv(file_name, sep='{field_delimiter}')
     """
-    if "where" in parsed_sql:
-        parsed_where = parsed_sql["where"]
+    parsed_where = parsed_sql.get("where")
+    if parsed_where:
         main_oper = list(parsed_where.keys())[0]
         if main_oper == "none":
             dict_for_process = parsed_where[main_oper]
@@ -359,8 +360,9 @@ def custom_reducer(file_name, dest):
     """
 
     select_cols = parsed_sql['select']
-    if 'groupby' in parsed_sql:
-        groupby_col = parsed_sql['groupby'][0]
+    parsed_groupby = parsed_sql.get("groupby")
+    if parsed_groupby:
+        groupby_col = parsed_groupby[0]
         res += f"""
     for i in {select_cols}:
         if 'aggregate_f_name' in i.keys():
@@ -373,16 +375,17 @@ def custom_reducer(file_name, dest):
     data_frame = data_frame.drop_duplicates({groupby_col}['key_name'])
     """
     select_cols = [i['new_name'].split(".")[-1] for i in select_cols]
-    if select_cols != ["*"]:
-        res += f"""
-    data_frame = data_frame[{select_cols}]
-    """
-    else:
+    if select_cols == ["*"]:
         res += """
     data_frame = data_frame.drop(columns='key_column')
     """
-    if "orderby" in parsed_sql:
-        col, asc = parsed_sql['orderby']
+    else:
+        res += f"""
+    data_frame = data_frame[{select_cols}]
+    """
+    parsed_orderby = parsed_sql.get("orderby")
+    if parsed_orderby:
+        col, asc = parsed_orderby
         res += f"""
     data_frame = data_frame.sort_values(by='{col}', ascending={asc})
     """
