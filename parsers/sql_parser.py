@@ -1,6 +1,8 @@
 import json
-import moz_sql_parser as msp
 import os
+
+import moz_sql_parser as msp
+
 from config.logger import client_logger
 
 logger = client_logger.get_logger(__name__)
@@ -19,23 +21,23 @@ class SQLParser:
 
     @staticmethod
     def from_parser(sql_from):
-        if type(sql_from) == list:
-            if 'join' in sql_from[1]:
-                return sql_from[0], sql_from[1]['join']
-            if 'inner join' in sql_from[1]:
-                return sql_from[0], sql_from[1]['inner join']
-            if 'right join' in sql_from[1]:
-                return sql_from[0], sql_from[1]['right join']
-            if 'left join' in sql_from[1]:
-                return sql_from[0], sql_from[1]['left join']
-            if 'full join' in sql_from[1]:
-                return sql_from[0], sql_from[1]['outer join']
-            if type(sql_from[0]) is dict:
-                if 'name' in sql_from[0]:
-                    if sql_from[0]['name'] == "OUTER":
-                        return sql_from[0]['value'], sql_from[1]['outer join']
-        elif type(sql_from) == dict:
-            return sql_from['value']
+        if isinstance(sql_from, list):
+            first, second = sql_from
+            if isinstance(first, dict):
+                if first.get("name", "").upper() == "OUTER":
+                    return first.get("value"), second.get("outer join")
+            else:
+                for join_type in (
+                        'join',
+                        'inner join',
+                        'right join',
+                ):
+                    if second.get(join_type):
+                        return first, second.get(join_type)
+                if second.get('full join'):
+                    return first, second.get('outer join')
+        elif isinstance(sql_from, dict):
+            return sql_from.get('value')
         else:
             return sql_from
 
