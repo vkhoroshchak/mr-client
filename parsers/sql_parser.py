@@ -250,7 +250,7 @@ class SQLParser:
         return col, sort_asc
 
     @staticmethod
-    def sql_parser(sql_query):  # noqa: C901
+    def sql_parser(sql_query):
         if type(sql_query) is dict:
             while 'value' in sql_query:
                 sql_query = sql_query['value']
@@ -299,7 +299,7 @@ class SQLParser:
                 return col['value']
 
 
-def custom_reducer(parsed_sql, field_delimiter):
+def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
     def where_dict_to_command(where_dict):
         oper = list(where_dict.keys())[0]
         results = where_dict[oper]
