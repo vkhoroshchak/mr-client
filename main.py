@@ -19,18 +19,22 @@ app = FastAPI()
 
 @app.post("/run-map-reduce")
 async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(...)):
+    files_info = {}
     for file in files:
         logger.info(f"Pushing {file.filename} into a cluster")
-        is_file_on_cluster = task.check_if_file_is_on_cluster(file.filename)['is_file_on_cluster']
-        logger.info(f"Is file on cluster: {is_file_on_cluster}")
-        if not is_file_on_cluster:
-            task.push_file_on_cluster(file)
-        else:
-            task.create_config_and_filesystem(file.filename)
-            task.move_file_to_init_folder(file.filename)
+        # TODO: To think about this logic
+        # is_file_on_cluster = task.check_if_file_is_on_cluster(file.filename)['is_file_on_cluster']
+        # logger.info(f"Is file on cluster: {is_file_on_cluster}")
+        # if not is_file_on_cluster:
+        #     task.push_file_on_cluster(file)
+        # else:
+        #     task.create_config_and_filesystem(file.filename)
+        #     task.move_file_to_init_folder(file.filename)
+        file_id = task.push_file_on_cluster(file)
+        files_info[file.filename] = file_id
 
     logger.info("File(s) uploaded, starting map_reduce phase")
-    task.run_tasks(sql)
+    task.run_tasks(sql, files_info)
 
 
 @app.delete("/remove-file-from-cluster", response_description="The file was successfully removed from the cluster!")

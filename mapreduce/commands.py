@@ -153,13 +153,11 @@ class GetResultOfKeyCommand(BaseCommand):
         return super().send_command(ip)
 
 
-# TODO: To finish Refactoring
 class MapCommand(BaseCommand):
 
-    def __init__(self, is_mapper_in_file, mapper, is_server_source_file, source_file):
-        self.command_body = {"field_delimiter": field_delimiter}
+    def __init__(self, is_mapper_in_file, mapper, file_id):
+        self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id}
         self._set_mapper_from_file(mapper) if is_mapper_in_file else self._set_mapper(mapper)
-        self._set_server_source_file(source_file) if is_server_source_file else self._set_source_file(source_file)
 
         super().__init__(self.command_body)
 
@@ -175,14 +173,6 @@ class MapCommand(BaseCommand):
         decoded = encoded.decode('utf-8')
         self.command_body['mapper'] = decoded
 
-    def _set_server_source_file(self, src_file):
-        encoded = src_file
-        self.command_body['server_source_file'] = encoded
-
-    def _set_source_file(self, src_file):
-        encoded = src_file
-        self.command_body['source_file'] = encoded
-
     def validate(self):
         if not self.command_body.get('mapper'):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -195,10 +185,9 @@ class MapCommand(BaseCommand):
 
 class ReduceCommand(BaseCommand):
 
-    def __init__(self, is_reducer_in_file, reducer, is_server_source_file, source_file):
-        self.command_body = {"field_delimiter": field_delimiter}
+    def __init__(self, is_reducer_in_file, reducer, file_id):
+        self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id}
         self._set_reducer_from_file(reducer) if is_reducer_in_file else self._set_reducer(reducer)
-        self._set_server_source_file(source_file) if is_server_source_file else self._set_source_file(source_file)
 
         super().__init__(self.command_body)
 
@@ -213,14 +202,6 @@ class ReduceCommand(BaseCommand):
         encoded = base64.b64encode(bytes(content, 'utf-8'))
         decoded = encoded.decode('utf-8')
         self.command_body['reducer'] = decoded
-
-    def _set_server_source_file(self, src_file):
-        encoded = src_file
-        self.command_body['server_source_file'] = encoded
-
-    def _set_source_file(self, src_file):
-        encoded = src_file
-        self.command_body['source_file'] = encoded
 
     def validate(self):
         if not self.command_body.get('reducer'):
@@ -270,10 +251,10 @@ class RefreshTableCommand(BaseCommand):
 
 class ShuffleCommand(BaseCommand):
 
-    def __init__(self, src_file):
+    def __init__(self, file_id):
         self.command_body = {
             "field_delimiter": field_delimiter,
-            "source_file": src_file,
+            "file_id": file_id,
         }
         super().__init__(self.command_body)
 

@@ -32,17 +32,17 @@ def refresh_table(file_id, ip, segment_name):
     return commands.RefreshTableCommand(file_id, ip, segment_name).send_command()
 
 
-def start_map_phase(is_mapper_in_file, mapper, is_server_source_file, source_file):
-    mc = commands.MapCommand(is_mapper_in_file, mapper, is_server_source_file, source_file)
+def start_map_phase(is_mapper_in_file, mapper, file_id):
+    mc = commands.MapCommand(is_mapper_in_file, mapper, file_id)
     return mc.send_command()
 
 
-def start_shuffle_phase(source_file):
-    return commands.ShuffleCommand(source_file).send_command()
+def start_shuffle_phase(file_id):
+    return commands.ShuffleCommand(file_id).send_command()
 
 
-def start_reduce_phase(is_reducer_in_file, reducer, is_server_source_file, source_file):
-    rc = commands.ReduceCommand(is_reducer_in_file, reducer, is_server_source_file, source_file)
+def start_reduce_phase(is_reducer_in_file, reducer, file_id):
+    rc = commands.ReduceCommand(is_reducer_in_file, reducer, file_id)
     return rc.send_command()
 
 
@@ -83,7 +83,7 @@ def push_file_on_cluster(uploaded_file: UploadFile):
 
 
 def push_file_chunk_on_cluster(file_id, chunk_name, chunk):
-    ip = append(file_id)
+    ip = append(file_id).get("data_node_ip")
     logger.info(f"Sending chunk {chunk_name} to data node with ip: {ip}")
     write(chunk_name, chunk, ip)
     refresh_table(file_id, ip, chunk_name)
@@ -98,13 +98,13 @@ def check_if_file_is_on_cluster(file_name):
 
 
 # TODO: Refactor
-def run_tasks(sql):
+def run_tasks(sql, files_info):
     parsed_sql = sql if type(sql) is dict else sql_parser.SQLParser.sql_parser(sql)
     field_delimiter = config_provider.field_delimiter
     from_file = parsed_sql['from']
 
     if type(from_file) is dict:
-        from_file = run_tasks(from_file)
+        from_file = run_tasks(from_file, files_info)
     if type(from_file) is tuple:
         reducer = sql_parser.custom_reducer(parsed_sql, field_delimiter)
 
@@ -113,22 +113,20 @@ def run_tasks(sql):
             key_col = sql_parser.SQLParser.get_key_col(parsed_sql, file_name)
 
             mapper = sql_parser.custom_mapper(key_col, own_select, field_delimiter)
-
+            file_id = files_info[file_name]
             start_map_phase(
                 is_mapper_in_file=False,
                 mapper=mapper,
-                is_server_source_file=True,
-                source_file=file_name,
+                file_id=file_id,
             )
-            start_shuffle_phase(file_name)
+            start_shuffle_phase(file_id=file_id)
 
         file_name = from_file[0]
 
         start_reduce_phase(
             is_reducer_in_file=False,
             reducer=reducer,
-            is_server_source_file=True,
-            source_file=file_name,
+            file_id=files_info[file_name]
         )
         return file_name
 
@@ -140,18 +138,17 @@ def run_tasks(sql):
         if type(from_file) is tuple:
             from_file = from_file[0]
 
+        file_id = files_info[from_file]
         start_map_phase(
             is_mapper_in_file=False,
             mapper=mapper,
-            is_server_source_file=True,
-            source_file=from_file,
+            file_id=file_id,
         )
-        start_shuffle_phase(from_file)
+        start_shuffle_phase(file_id=file_id)
 
         start_reduce_phase(
             is_reducer_in_file=False,
             reducer=reducer,
-            is_server_source_file=True,
-            source_file=from_file,
+            file_id=file_id,
         )
         return from_file
