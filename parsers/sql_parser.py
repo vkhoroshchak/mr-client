@@ -149,34 +149,34 @@ class SQLParser:
     @staticmethod
     def where_parser(sql_where):
         def process_condition_dict(condition_dict):
-            res = {}
             oper = list(condition_dict.keys())[0]
-            operator = ""
+            res = {
+                oper: {}
+            }
 
-            if oper == "eq":
-                operator = "=="
-            elif oper == "neq":
-                operator = "!="
-            elif oper == "gt":
-                operator = ">"
-            elif oper == "lt":
-                operator = "<"
-            elif oper == "gte":
-                operator = ">="
-            elif oper == "lte":
-                operator = "<="
-            res[oper] = {}
+            oper_to_operator = {
+                "eq": "==",
+                "neq": "!=",
+                "gt": ">",
+                "lt": "<",
+                "gte": ">=",
+                "lte": "<=",
+            }
+
+            operator = oper_to_operator.get(oper)
+
             if operator:
-                left, right = condition_dict[oper] if not type(condition_dict[oper]) is dict \
-                    else condition_dict[oper]["literal"]
+                left, right = condition_dict[oper].get("literal") if isinstance(condition_dict[oper], dict) \
+                    else condition_dict[oper]
+
                 res[oper]["operator"] = operator
                 res[oper]["left"] = left
-                res[oper]["right"] = right if not type(right) is dict else right["literal"]
+                res[oper]["right"] = right.get("literal") if isinstance(right, dict) else right
             elif oper.endswith("between"):
                 literal = condition_dict[oper]
                 col = literal[0]
-                left = literal[1] if not type(literal[1]) is dict else literal[1]["literal"]
-                right = literal[2] if not type(literal[2]) is dict else literal[2]["literal"]
+                left = literal[1].get("literal") if isinstance(literal[1], dict) else literal[1]
+                right = literal[2].get("literal") if isinstance(literal[2]) else literal[2]
 
                 if oper == "not_between":
                     first_oper = "<"
@@ -184,12 +184,14 @@ class SQLParser:
                 else:
                     first_oper = ">="
                     second_oper = "<="
+
+                res[oper]["operator"] = "&" if oper == "between" else "|"
                 res[oper]["col"] = col
                 res[oper]["first_oper"] = first_oper
                 res[oper]["left"] = left
                 res[oper]["second_oper"] = second_oper
                 res[oper]["right"] = right
-                res[oper]["operator"] = "&" if oper == "between" else "|"
+
             elif oper.endswith("like"):
                 literal = condition_dict[oper]
                 column = literal[0]
@@ -201,34 +203,40 @@ class SQLParser:
                         escaped_pattern = escaped_pattern.replace(esc, "\\" + esc)
                 re_pattern = escaped_pattern.replace("%", ".*").replace("_", ".") + "$"
                 not_keyword = "~" if oper == "nlike" else ""
+
                 res[oper]["not_keyword"] = not_keyword
                 res[oper]["column"] = column
                 res[oper]["re_pattern"] = re_pattern
             elif oper.endswith("in"):
                 literal = condition_dict[oper]
                 column = literal[0]
-                list_of_literals = literal[1] if not type(literal[1]) is dict else literal[1]['literal']
+                list_of_literals = literal[1].get("literal") if isinstance(literal[1], dict) else literal[1]
                 not_keyword = "~" if oper == "nin" else ""
+
                 res[oper]["not_keyword"] = not_keyword
                 res[oper]["column"] = column
                 res[oper]["list_of_literals"] = list_of_literals
             else:
-                print("error!")
+                raise ValueError("SQL operator not parser properly!")
             return res
 
         res = {}
         main_oper = list(sql_where.keys())[0]
-        concat_oper = "none"
-        if main_oper == "or":
-            concat_oper = " | "
-        elif main_oper == "and":
-            concat_oper = " & "
-        if concat_oper == "none":
-            res[concat_oper] = process_condition_dict(sql_where)
-        else:
+
+        main_oper_to_concat_oper = {
+            "or": " | ",
+            "and": " & ",
+        }
+
+        concat_oper = main_oper_to_concat_oper.get(main_oper)
+
+        if concat_oper:
             res[concat_oper] = []
             for d in sql_where[main_oper]:
                 res[concat_oper].append(process_condition_dict(d))
+        else:
+            res[concat_oper] = process_condition_dict(sql_where)
+
         return res
 
     @staticmethod
