@@ -72,7 +72,7 @@ def push_file_on_cluster(uploaded_file: UploadFile):
     if headers:
         headers = headers.decode("utf-8")
 
-    groups = groupby(file_obj, key=lambda _, line=count(): next(line) // row_limit)
+    groups = groupby(file_obj, key=lambda _, line=count(): next(line, None) // row_limit)
 
     for counter, group in groups:
         logger.info(f"Send chunk: {output_name_template % counter} to data node")
