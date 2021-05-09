@@ -1,5 +1,5 @@
 import os
-
+from itertools import groupby, count
 from fastapi import UploadFile
 
 import parsers.sql_parser as sql_parser
@@ -68,28 +68,17 @@ def push_file_on_cluster(uploaded_file: UploadFile):
     output_name_template = f"{file_name}_%s{file_ext}"
     file_obj = uploaded_file.file._file
     headers = next(file_obj, None)
+
     if headers:
         headers = headers.decode("utf-8")
 
-    with file_obj as f:
-        counter = 1
-        chunk = []
+    groups = groupby(file_obj, key=lambda _, line=count(): next(line) // row_limit)
 
-        for line in f:
-            chunk.append(line.decode("utf-8"))
-            if len(chunk) > row_limit:
-                logger.info(f"Send chunk: {output_name_template % counter} to data node")
-                push_file_chunk_on_cluster(file_id=file_id,
-                                           chunk_name=output_name_template % counter,
-                                           chunk={"headers": headers, "items": chunk})
-                chunk = []
-                counter += 1
-        # push rest of file
-        logger.info(f"Send last chunk: {output_name_template % counter} to data node")
+    for counter, group in groups:
+        logger.info(f"Send chunk: {output_name_template % counter} to data node")
         push_file_chunk_on_cluster(file_id=file_id,
                                    chunk_name=output_name_template % counter,
-                                   chunk={"headers": headers, "items": chunk})
-
+                                   chunk={"headers": headers, "items": [i.decode("utf-8") for i in group]})
     return file_id
 
 
