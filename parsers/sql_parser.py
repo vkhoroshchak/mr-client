@@ -317,16 +317,12 @@ def custom_reducer(parsed_sql, field_delimiter):
             comm = f"data_frame.{results['left'].title()} {results['operator']} {results['right']}"
         return comm
 
-    from_file = parsed_sql["from"]
-    res = """
-def custom_reducer(file_name, dest):
-    import pandas as pd
-    """
-    if isinstance(from_file, tuple):
-        parsed_join = parsed_sql["join"]
-        left_df_col_name = parsed_join['on'][0].split('.')[1]
-        right_df_col_name = parsed_join['on'][1].split('.')[1]
-        res += f"""
+    def parse_from(from_file):
+        if isinstance(from_file, tuple):
+            parsed_join = parsed_sql["join"]
+            left_df_col_name = parsed_join['on'][0].split('.')[1]
+            right_df_col_name = parsed_join['on'][1].split('.')[1]
+            return f"""
     l_file_name, r_file_name = file_name
     left_df = pd.read_csv(l_file_name)
     right_df = pd.read_csv(r_file_name)
@@ -340,30 +336,32 @@ def custom_reducer(file_name, dest):
                           left_on=left_df_col_name,
                           right_on=right_df_col_name)
     """
-    else:
-        res += f"""
+        else:
+            return f"""
     data_frame = pd.read_csv(file_name, sep='{field_delimiter}')
     """
-    parsed_where = parsed_sql.get("where")
-    if parsed_where:
-        main_oper = list(parsed_where.keys())[0]
-        if main_oper == "none":
-            dict_for_process = parsed_where[main_oper]
-            command = where_dict_to_command(dict_for_process)
-        else:
-            commands = []
-            for d in parsed_where[main_oper]:
-                commands.append(where_dict_to_command(d))
-            command = main_oper.join([f"({x})" for x in commands])
-        res += f"""
+
+    def parse_where(parsed_where):
+        if parsed_where:
+            main_oper = list(parsed_where.keys())[0]
+            if main_oper == "none":
+                dict_for_process = parsed_where[main_oper]
+                command = where_dict_to_command(dict_for_process)
+            else:
+                commands = []
+                for d in parsed_where[main_oper]:
+                    commands.append(where_dict_to_command(d))
+                command = main_oper.join([f"({x})" for x in commands])
+            return f"""
     data_frame = data_frame[{command}]
     """
+        else:
+            return ""
 
-    select_cols = parsed_sql['select']
-    parsed_groupby = parsed_sql.get("groupby")
-    if parsed_groupby:
-        groupby_col = parsed_groupby[0]
-        res += f"""
+    def parse_groupby(parsed_groupby, select_cols):
+        if parsed_groupby:
+            groupby_col = parsed_groupby[0]
+            return f"""
     for i in {select_cols}:
         if 'aggregate_f_name' in i.keys():
             if {groupby_col}['key_name']:
@@ -374,24 +372,47 @@ def custom_reducer(file_name, dest):
                     i['aggregate_f_name'])
     data_frame = data_frame.drop_duplicates({groupby_col}['key_name'])
     """
-    select_cols = [i['new_name'].split(".")[-1] for i in select_cols]
-    if select_cols == ["*"]:
-        res += """
+        else:
+            return ""
+
+    def parse_select(select_cols):
+        if select_cols == ["*"]:
+            return """
     data_frame = data_frame.drop(columns='key_column')
     """
-    else:
-        res += f"""
+        else:
+            return f"""
     data_frame = data_frame[{select_cols}]
     """
-    parsed_orderby = parsed_sql.get("orderby")
-    if parsed_orderby:
-        col, asc = parsed_orderby
-        res += f"""
+
+    def parse_orderby(parsed_orderby):
+        if parsed_orderby:
+            col, asc = parsed_orderby
+            return f"""
     data_frame = data_frame.sort_values(by='{col}', ascending={asc})
     """
+        else:
+            return ""
+
+    res = """
+def custom_reducer(file_name, dest):
+    import pandas as pd
+    """
+
+    res += parse_from(parsed_sql.get("from"))
+
+    res += parse_where(parsed_sql.get("where"))
+
+    res += parse_groupby(parsed_sql.get("groupby"), parsed_sql.get('select'))
+
+    res += parse_select([i['new_name'].split(".")[-1] for i in parsed_sql.get('select')])
+
+    res += parse_orderby(parsed_sql.get("orderby"))
+
     res += f"""
     data_frame.to_csv(dest, index=False, sep='{field_delimiter}')
     """
+
     return res
 
 
