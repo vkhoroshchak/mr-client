@@ -60,16 +60,16 @@ class AppendCommand(BaseCommand):
 
 class ClearDataCommand(BaseCommand):
 
-    def __init__(self, folder_name, remove_all: bool):
-        self.command_body = {'folder_name': folder_name,
+    def __init__(self, file_id, remove_all: bool):
+        self.command_body = {'file_id': file_id,
                              'remove_all_data': remove_all}
 
         super().__init__(self.command_body)
 
     def validate(self):
-        if not self.command_body.get('folder_name'):
+        if not self.command_body.get('file_id'):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                                detail='Folder name is not specified!')
+                                detail='File id is not specified!')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -79,7 +79,7 @@ class ClearDataCommand(BaseCommand):
 class CreateConfigAndFilesystem(BaseCommand):
 
     def __init__(self, file_name):
-        self.command_body = {'file_name': file_name}
+        self.command_body = {'file_name': file_name, 'field_delimiter': field_delimiter}
         super().__init__(self.command_body)
 
     def validate(self):

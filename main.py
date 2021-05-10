@@ -1,5 +1,4 @@
 from typing import List
-
 # from fastapi.responses import FileResponse
 from fastapi import (
     FastAPI,
@@ -38,8 +37,8 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
 
 
 @app.delete("/remove-file-from-cluster", response_description="The file was successfully removed from the cluster!")
-async def remove_file_from_cluster(file_name: str, clear_all: bool):
-    task.clear_data(file_name, clear_all)
+async def remove_file_from_cluster(file_id: str, clear_all: bool):
+    task.clear_data(file_id, clear_all)
     return JSONResponse("The file was successfully removed from the cluster!")
 
 

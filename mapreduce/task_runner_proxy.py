@@ -54,8 +54,8 @@ def get_file(file_name, ip=None):
     return commands.GetFileCommand(file_name).send_command(ip=ip)
 
 
-def clear_data(file_name: str, clear_all: bool):
-    return commands.ClearDataCommand(file_name, clear_all).send_command()
+def clear_data(file_id: str, clear_all: bool):
+    return commands.ClearDataCommand(file_id, clear_all).send_command()
 
 
 def push_file_on_cluster(uploaded_file: UploadFile):
@@ -157,5 +157,6 @@ def run_tasks(sql, files_info):
             is_reducer_in_file=False,
             reducer=reducer,
             file_id=file_id,
+            source_file=from_file
         )
         return from_file
