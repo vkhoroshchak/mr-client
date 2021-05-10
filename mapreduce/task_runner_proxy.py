@@ -24,8 +24,8 @@ def append(file_id):
     return commands.AppendCommand(file_id).send_command()
 
 
-def write(file_name, segment, data_node_ip):
-    return commands.WriteCommand(file_name, segment, data_node_ip).send_command()
+def write(file_name, segment, data_node_ip, src_file_name):
+    return commands.WriteCommand(file_name, segment, data_node_ip, src_file_name).send_command()
 
 
 def refresh_table(file_id, ip, segment_name):
@@ -41,8 +41,8 @@ def start_shuffle_phase(file_id):
     return commands.ShuffleCommand(file_id).send_command()
 
 
-def start_reduce_phase(is_reducer_in_file, reducer, file_id):
-    rc = commands.ReduceCommand(is_reducer_in_file, reducer, file_id)
+def start_reduce_phase(is_reducer_in_file, reducer, file_id, source_file):
+    rc = commands.ReduceCommand(is_reducer_in_file, reducer, file_id, source_file)
     return rc.send_command()
 
 
@@ -78,14 +78,15 @@ def push_file_on_cluster(uploaded_file: UploadFile):
         logger.info(f"Send chunk: {output_name_template % counter} to data node")
         push_file_chunk_on_cluster(file_id=file_id,
                                    chunk_name=output_name_template % counter,
-                                   chunk={"headers": headers, "items": [i.decode("utf-8") for i in group]})
+                                   chunk={"headers": headers, "items": [i.decode("utf-8") for i in group]},
+                                   file_name=uploaded_file.filename)
     return file_id
 
 
-def push_file_chunk_on_cluster(file_id, chunk_name, chunk):
+def push_file_chunk_on_cluster(file_id, chunk_name, chunk, file_name):
     ip = append(file_id).get("data_node_ip")
     logger.info(f"Sending chunk {chunk_name} to data node with ip: {ip}")
-    write(chunk_name, chunk, ip)
+    write(chunk_name, chunk, ip, file_name)
     refresh_table(file_id, ip, chunk_name)
 
 
@@ -106,27 +107,33 @@ def run_tasks(sql, files_info):
     if type(from_file) is dict:
         from_file = run_tasks(from_file, files_info)
     if type(from_file) is tuple:
+        print(109)
         reducer = sql_parser.custom_reducer(parsed_sql, field_delimiter)
 
         for file_name in from_file:
+            print(113, file_name)
             own_select = sql_parser.SQLParser.split_select_cols(file_name, parsed_sql['select'])
             key_col = sql_parser.SQLParser.get_key_col(parsed_sql, file_name)
 
             mapper = sql_parser.custom_mapper(key_col, own_select, field_delimiter)
             file_id = files_info[file_name]
+            print(119, file_id)
             start_map_phase(
                 is_mapper_in_file=False,
                 mapper=mapper,
                 file_id=file_id,
             )
+            print(125, file_id)
             start_shuffle_phase(file_id=file_id)
 
         file_name = from_file[0]
 
+        print(130, list(from_file))
         start_reduce_phase(
             is_reducer_in_file=False,
             reducer=reducer,
-            file_id=files_info[file_name]
+            file_id=files_info[file_name],
+            source_file=list(from_file)
         )
         return file_name
 

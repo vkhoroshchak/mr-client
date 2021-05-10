@@ -185,8 +185,10 @@ class MapCommand(BaseCommand):
 
 class ReduceCommand(BaseCommand):
 
-    def __init__(self, is_reducer_in_file, reducer, file_id):
-        self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id}
+    def __init__(self, is_reducer_in_file, reducer, file_id, source_file):
+        if isinstance(source_file, list):
+            source_file = ",".join(source_file)
+        self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id, "source_file": source_file}
         self._set_reducer_from_file(reducer) if is_reducer_in_file else self._set_reducer(reducer)
 
         super().__init__(self.command_body)
@@ -268,11 +270,12 @@ class ShuffleCommand(BaseCommand):
 
 class WriteCommand(BaseCommand):
 
-    def __init__(self, file_name, segment, data_node_ip):
+    def __init__(self, file_name, segment, data_node_ip, src_file_name):
         self.command_body = {
             "file_name": file_name,
             "segment": segment,
             "data_node_ip": data_node_ip,
+            "src_file_name": src_file_name
         }
         super().__init__(self.command_body)
 
