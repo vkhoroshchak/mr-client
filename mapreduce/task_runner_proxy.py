@@ -32,13 +32,13 @@ def refresh_table(file_id, ip, segment_name):
     return commands.RefreshTableCommand(file_id, ip, segment_name).send_command()
 
 
-def start_map_phase(is_mapper_in_file, mapper, file_id):
-    mc = commands.MapCommand(is_mapper_in_file, mapper, file_id)
+def start_map_phase(is_mapper_in_file, mapper, file_id, source_file):
+    mc = commands.MapCommand(is_mapper_in_file, mapper, file_id, source_file)
     return mc.send_command()
 
 
-def start_shuffle_phase(file_id):
-    return commands.ShuffleCommand(file_id).send_command()
+def start_shuffle_phase(file_id, source_file):
+    return commands.ShuffleCommand(file_id, source_file).send_command()
 
 
 def start_reduce_phase(is_reducer_in_file, reducer, file_id, source_file):
@@ -107,28 +107,24 @@ def run_tasks(sql, files_info):
     if type(from_file) is dict:
         from_file = run_tasks(from_file, files_info)
     if type(from_file) is tuple:
-        print(109)
         reducer = sql_parser.custom_reducer(parsed_sql, field_delimiter)
 
         for file_name in from_file:
-            print(113, file_name)
             own_select = sql_parser.SQLParser.split_select_cols(file_name, parsed_sql['select'])
             key_col = sql_parser.SQLParser.get_key_col(parsed_sql, file_name)
 
             mapper = sql_parser.custom_mapper(key_col, own_select, field_delimiter)
             file_id = files_info[file_name]
-            print(119, file_id)
             start_map_phase(
                 is_mapper_in_file=False,
                 mapper=mapper,
                 file_id=file_id,
+                source_file=from_file
             )
-            print(125, file_id)
-            start_shuffle_phase(file_id=file_id)
+            start_shuffle_phase(file_id=file_id, source_file=file_name)
 
         file_name = from_file[0]
 
-        print(130, list(from_file))
         start_reduce_phase(
             is_reducer_in_file=False,
             reducer=reducer,
@@ -138,6 +134,7 @@ def run_tasks(sql, files_info):
         return file_name
 
     else:
+
         key_col = sql_parser.SQLParser.get_key_col(parsed_sql, from_file)
         reducer = sql_parser.custom_reducer(parsed_sql, field_delimiter)
         mapper = sql_parser.custom_mapper(key_col, parsed_sql['select'], field_delimiter)
@@ -150,8 +147,9 @@ def run_tasks(sql, files_info):
             is_mapper_in_file=False,
             mapper=mapper,
             file_id=file_id,
+            source_file=from_file
         )
-        start_shuffle_phase(file_id=file_id)
+        start_shuffle_phase(file_id=file_id, source_file=from_file)
 
         start_reduce_phase(
             is_reducer_in_file=False,

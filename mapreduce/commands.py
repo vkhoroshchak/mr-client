@@ -155,8 +155,8 @@ class GetResultOfKeyCommand(BaseCommand):
 
 class MapCommand(BaseCommand):
 
-    def __init__(self, is_mapper_in_file, mapper, file_id):
-        self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id}
+    def __init__(self, is_mapper_in_file, mapper, file_id, source_file):
+        self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id, "source_file": source_file}
         self._set_mapper_from_file(mapper) if is_mapper_in_file else self._set_mapper(mapper)
 
         super().__init__(self.command_body)
@@ -253,10 +253,11 @@ class RefreshTableCommand(BaseCommand):
 
 class ShuffleCommand(BaseCommand):
 
-    def __init__(self, file_id):
+    def __init__(self, file_id, source_file):
         self.command_body = {
             "field_delimiter": field_delimiter,
             "file_id": file_id,
+            "source_file": source_file,
         }
         super().__init__(self.command_body)
 
