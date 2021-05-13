@@ -24,21 +24,21 @@ def append(file_id):
     return commands.AppendCommand(file_id).send_command()
 
 
-def write(file_name, segment, data_node_ip, src_file_name):
-    return commands.WriteCommand(file_name, segment, data_node_ip, src_file_name).send_command()
+def write(file_id, file_name, segment, data_node_ip):
+    return commands.WriteCommand(file_id, file_name, segment, data_node_ip).send_command()
 
 
 def refresh_table(file_id, ip, segment_name):
     return commands.RefreshTableCommand(file_id, ip, segment_name).send_command()
 
 
-def start_map_phase(is_mapper_in_file, mapper, file_id, source_file):
-    mc = commands.MapCommand(is_mapper_in_file, mapper, file_id, source_file)
+def start_map_phase(is_mapper_in_file, mapper, file_id):
+    mc = commands.MapCommand(is_mapper_in_file, mapper, file_id)
     return mc.send_command()
 
 
-def start_shuffle_phase(file_id, source_file):
-    return commands.ShuffleCommand(file_id, source_file).send_command()
+def start_shuffle_phase(file_id):
+    return commands.ShuffleCommand(file_id).send_command()
 
 
 def start_reduce_phase(is_reducer_in_file, reducer, file_id, source_file):
@@ -86,7 +86,7 @@ def push_file_on_cluster(uploaded_file: UploadFile):
 def push_file_chunk_on_cluster(file_id, chunk_name, chunk, file_name):
     ip = append(file_id).get("data_node_ip")
     logger.info(f"Sending chunk {chunk_name} to data node with ip: {ip}")
-    write(chunk_name, chunk, ip, file_name)
+    write(file_id, chunk_name, chunk, ip)
     refresh_table(file_id, ip, chunk_name)
 
 
@@ -119,9 +119,8 @@ def run_tasks(sql, files_info):
                 is_mapper_in_file=False,
                 mapper=mapper,
                 file_id=file_id,
-                source_file=from_file
             )
-            start_shuffle_phase(file_id=file_id, source_file=file_name)
+            start_shuffle_phase(file_id=file_id)
 
         file_name = from_file[0]
 
@@ -147,9 +146,8 @@ def run_tasks(sql, files_info):
             is_mapper_in_file=False,
             mapper=mapper,
             file_id=file_id,
-            source_file=from_file
         )
-        start_shuffle_phase(file_id=file_id, source_file=from_file)
+        start_shuffle_phase(file_id=file_id)
 
         start_reduce_phase(
             is_reducer_in_file=False,
