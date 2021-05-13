@@ -324,13 +324,13 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
             right_df_col_name = parsed_join['on'][1].split('.')[1]
             return f"""
     l_file_name, r_file_name = file_name
-    left_df = pd.read_csv(l_file_name)
-    right_df = pd.read_csv(r_file_name)
+    left_df = dd.read_csv(l_file_name)
+    right_df = dd.read_csv(r_file_name)
     left_df = left_df.drop(columns=['key_column'])
     right_df = right_df.drop(columns=['key_column'])
     left_df_col_name = '{left_df_col_name}'
     right_df_col_name = '{right_df_col_name}'
-    data_frame = pd.merge(left=left_df,
+    data_frame = dd.merge(left=left_df,
                           how='{parsed_join['join_type']}',
                           right=right_df,
                           left_on=left_df_col_name,
@@ -338,7 +338,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
     """
         else:
             return f"""
-    data_frame = pd.read_csv(file_name, sep='{field_delimiter}')
+    data_frame = dd.read_csv(file_name, sep='{field_delimiter}')
     """
 
     def parse_where(parsed_where):
@@ -396,7 +396,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
 
     res = """
 def custom_reducer(file_name, dest):
-    import pandas as pd
+    import dask.dataframe as dd
     """
 
     res += parse_from(parsed_sql.get("from"))
@@ -419,7 +419,7 @@ def custom_reducer(file_name, dest):
 def custom_mapper(key_column, col_names, field_delimiter):
     return f"""
 def custom_mapper(file_name):
-    import pandas as pd
+    import dask.dataframe as dd
 
     def update_col_names():
         df_col_names = list(data_frame)
@@ -436,7 +436,7 @@ def custom_mapper(file_name):
         res.columns = df_col_names
         return res
 
-    data_frame = pd.read_csv(file_name, sep='{field_delimiter}')
+    data_frame = dd.read_csv(file_name, sep='{field_delimiter}')
 
     data_frame = update_col_names()
 
