@@ -324,8 +324,10 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
             right_df_col_name = parsed_join['on'][1].split('.')[1]
             return f"""
     l_file_name, r_file_name = file_name
-    left_df = dd.read_csv(l_file_name)
-    right_df = dd.read_csv(r_file_name)
+    # left_df = dd.read_csv(l_file_name)
+    # right_df = dd.read_csv(r_file_name)
+    left_df = dd.read_parquet(l_file_name)
+    right_df = dd.read_parquet(r_file_name)
     left_df = left_df.drop(columns=['key_column'])
     right_df = right_df.drop(columns=['key_column'])
     left_df_col_name = '{left_df_col_name}'
@@ -338,7 +340,8 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
     """
         else:
             return f"""
-    data_frame = dd.read_csv(file_name, sep='{field_delimiter}')
+    # data_frame = dd.read_csv(file_name, sep='{field_delimiter}')
+    data_frame = dd.read_parquet(file_name, sep='{field_delimiter}')
     """
 
     def parse_where(parsed_where):
