@@ -92,7 +92,7 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
 
         tasks = []
         for group in groups:
-            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(group[1], next(data_nodes_list))))
+            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(group[1], next(data_nodes_list, None))))
 
         await asyncio.gather(*tasks)
 
