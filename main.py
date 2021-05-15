@@ -1,4 +1,5 @@
 from typing import List
+
 # from fastapi.responses import FileResponse
 from fastapi import (
     FastAPI,
@@ -44,7 +45,7 @@ async def remove_file_from_cluster(file_id: str, clear_all: bool):
 
 @app.post("/push-file-on-cluster", response_description="The file was successfully uploaded to the cluster!")
 async def push_file_on_cluster(file: UploadFile = File(...)):
-    file_id = task.push_file_on_cluster(file)
+    file_id = await task.push_file_on_cluster(file)
     return {"file_id": file_id}
 
 

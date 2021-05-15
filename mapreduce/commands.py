@@ -13,11 +13,18 @@ field_delimiter = ConfigProvider(os.path.join('..', 'config', 'client_config.jso
 
 
 class BaseCommand(object):
-    def __init__(self, command_body):
+    def __init__(self, session, command_body=None):
+        self.session = session
         self.command_body = command_body
 
     def validate(self):
         raise NotImplementedError()
+
+    async def send_command_async(self, session, command_name, ip=None, method="POST"):
+        if not ip:
+            return await base_http_client.send_request(session, self.command_body, command_name, method=method)
+        else:
+            return await base_http_client.send_request(session, self.command_body, command_name, ip, method)
 
     def send_command(self, command_name, ip=None):
         if not ip:
@@ -42,20 +49,18 @@ class CheckIfFileIsOnCLuster(BaseCommand):
         return super().send_command(command_name='check_if_file_is_on_cluster')
 
 
-class AppendCommand(BaseCommand):
+class GetDataNodesListCommand(BaseCommand):
 
-    def __init__(self, file_id):
-        self.command_body = {'file_id': file_id}
-        super().__init__(self.command_body)
+    def __init__(self, session):
+        super().__init__(session)
 
     def validate(self):
-        if not self.command_body['file_id']:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                                detail='Destination file is not specified!')
+        pass
 
-    def send_command(self, **kwargs):
+    async def send_command_async(self, **kwargs):
+        logger.info(f"Get data nodes list")
         self.validate()
-        return super().send_command(command_name='append')
+        return await super().send_command_async(self.session, command_name='get-data-nodes-list', method="GET")
 
 
 class ClearDataCommand(BaseCommand):
@@ -78,14 +83,18 @@ class ClearDataCommand(BaseCommand):
 
 class CreateConfigAndFilesystem(BaseCommand):
 
-    def __init__(self, file_name):
+    def __init__(self, session, file_name):
         self.command_body = {'file_name': file_name, 'field_delimiter': field_delimiter}
-        super().__init__(self.command_body)
+        super().__init__(session, self.command_body)
 
     def validate(self):
         if not self.command_body.get('file_name'):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail='File name is not specified!')
+
+    async def send_command_async(self, **kwargs):
+        self.validate()
+        return await super().send_command_async(session=self.session, command_name='create_config_and_filesystem')
 
     def send_command(self, **kwargs):
         self.validate()
@@ -229,13 +238,13 @@ class MoveFileToInitFolderCommand(BaseCommand):
 
 class RefreshTableCommand(BaseCommand):
 
-    def __init__(self, file_name, ip, segment_name):
+    def __init__(self, session, file_name, ip, segment_name):
         self.command_body = {
             "file_id": file_name,
             "ip": ip,
             "segment_name": segment_name,
         }
-        super().__init__(self.command_body)
+        super().__init__(session, self.command_body)
 
     def validate(self):
         if not self.command_body.get('file_id'):
@@ -246,9 +255,10 @@ class RefreshTableCommand(BaseCommand):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail='Segment name is not specified!')
 
-    def send_command(self, **kwargs):
+    async def send_command_async(self, **kwargs):
         self.validate()
-        return super().send_command('refresh_table')
+        logger.info(f"Refresh table {self.command_body}")
+        return await super().send_command_async(self.session, 'refresh_table')
 
 
 class ShuffleCommand(BaseCommand):
@@ -270,14 +280,14 @@ class ShuffleCommand(BaseCommand):
 
 class WriteCommand(BaseCommand):
 
-    def __init__(self, file_id, file_name, segment, data_node_ip):
+    def __init__(self, session, file_id, file_name, segment, data_node_ip):
         self.command_body = {
             "file_id": file_id,
             "file_name": file_name,
             "segment": segment,
             "data_node_ip": data_node_ip,
         }
-        super().__init__(self.command_body)
+        super().__init__(session, self.command_body)
 
     def validate(self):
         if not self.command_body.get('segment'):
@@ -292,6 +302,7 @@ class WriteCommand(BaseCommand):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail='Data node ip is not specified!')
 
-    def send_command(self, **kwargs):
+    async def send_command_async(self, **kwargs):
         self.validate()
-        return super().send_command(command_name='write', ip=self.command_body['data_node_ip'])
+        return await super().send_command_async(self.session, command_name='write',
+                                                ip=self.command_body['data_node_ip'])

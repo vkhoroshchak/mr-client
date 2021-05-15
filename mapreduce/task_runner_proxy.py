@@ -1,5 +1,9 @@
+import asyncio
 import os
-from itertools import groupby, count
+import uuid
+from itertools import groupby, count, cycle
+
+from aiohttp import ClientSession
 from fastapi import UploadFile
 
 import parsers.sql_parser as sql_parser
@@ -16,20 +20,20 @@ def get_file_from_cluster(file_name, dest_file_name):
     return commands.GetFileFromClusterCommand(file_name, dest_file_name).send_command()
 
 
-def create_config_and_filesystem(file_name):
-    return commands.CreateConfigAndFilesystem(file_name).send_command()
+async def create_config_and_filesystem(session, file_name):
+    return await commands.CreateConfigAndFilesystem(session, file_name).send_command_async()
 
 
-def append(file_id):
-    return commands.AppendCommand(file_id).send_command()
+async def get_data_nodes_list(session):
+    return await commands.GetDataNodesListCommand(session).send_command_async()
 
 
-def write(file_id, file_name, segment, data_node_ip):
-    return commands.WriteCommand(file_id, file_name, segment, data_node_ip).send_command()
+async def write(session, file_id, file_name, segment, data_node_ip):
+    return await commands.WriteCommand(session, file_id, file_name, segment, data_node_ip).send_command_async()
 
 
-def refresh_table(file_id, ip, segment_name):
-    return commands.RefreshTableCommand(file_id, ip, segment_name).send_command()
+async def refresh_table(session, file_id, ip, segment_name):
+    return await commands.RefreshTableCommand(session, file_id, ip, segment_name).send_command_async()
 
 
 def start_map_phase(is_mapper_in_file, mapper, file_id):
@@ -58,36 +62,41 @@ def clear_data(file_id: str, clear_all: bool):
     return commands.ClearDataCommand(file_id, clear_all).send_command()
 
 
-def push_file_on_cluster(uploaded_file: UploadFile):
-    response = create_config_and_filesystem(uploaded_file.filename)
+async def push_file_on_cluster(uploaded_file: UploadFile):
+    async with ClientSession() as session:
+        response = await create_config_and_filesystem(session, uploaded_file.filename)
+        data_nodes_list = await get_data_nodes_list(session)
+        data_nodes_list = cycle(data_nodes_list)
+        row_limit = response.get("distribution")
+        file_id = response.get("file_id")
 
-    row_limit = response.get("distribution")
-    file_id = response.get("file_id")
+        file_name, file_ext = os.path.splitext(uploaded_file.filename)
+        file_obj = uploaded_file.file._file  # noqa
+        headers = next(file_obj, None)
 
-    file_name, file_ext = os.path.splitext(uploaded_file.filename)
-    output_name_template = f"{file_name}_%s{file_ext}"
-    file_obj = uploaded_file.file._file
-    headers = next(file_obj, None)
+        if headers:
+            headers = headers.decode("utf-8")
 
-    if headers:
-        headers = headers.decode("utf-8")
+        groups = groupby(file_obj, key=lambda _, line=count(): next(line, None) // row_limit)
 
-    groups = groupby(file_obj, key=lambda _, line=count(): next(line, None) // row_limit)
+        async def push_chunk_on_cluster(chunk, ip):
+            ip = f"http://{ip}"  # noqa
 
-    for counter, group in groups:
-        logger.info(f"Send chunk: {output_name_template % counter} to data node")
-        push_file_chunk_on_cluster(file_id=file_id,
-                                   chunk_name=output_name_template % counter,
-                                   chunk={"headers": headers, "items": [i.decode("utf-8") for i in group]},
-                                   file_name=uploaded_file.filename)
+            chunk_name = f"{uuid.uuid4()}{file_ext}"
+            await write(session,
+                        file_id,
+                        chunk_name,
+                        {"headers": headers, "items": [i.decode("utf-8") for i in chunk]},
+                        ip)
+            await refresh_table(session, file_id, ip, chunk_name)
+
+        tasks = []
+        for group in groups:
+            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(group[1], next(data_nodes_list))))
+
+        await asyncio.gather(*tasks)
+
     return file_id
-
-
-def push_file_chunk_on_cluster(file_id, chunk_name, chunk, file_name):
-    ip = append(file_id).get("data_node_ip")
-    logger.info(f"Sending chunk {chunk_name} to data node with ip: {ip}")
-    write(file_id, chunk_name, chunk, ip)
-    refresh_table(file_id, ip, chunk_name)
 
 
 def move_file_to_init_folder(file_name):
@@ -98,7 +107,6 @@ def check_if_file_is_on_cluster(file_name):
     return commands.CheckIfFileIsOnCLuster(file_name).send_command()
 
 
-# TODO: Refactor
 def run_tasks(sql, files_info):
     parsed_sql = sql if type(sql) is dict else sql_parser.SQLParser.sql_parser(sql)
     field_delimiter = config_provider.field_delimiter
