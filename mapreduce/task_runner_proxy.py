@@ -86,13 +86,14 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
             await write(session,
                         file_id,
                         chunk_name,
-                        {"headers": headers, "items": [i.decode("utf-8") for i in chunk]},
+                        {"headers": headers, "items": chunk},
                         ip)
             await refresh_table(session, file_id, ip, chunk_name)
 
         tasks = []
         for group in groups:
-            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(group[1], next(data_nodes_list, None))))
+            segment_items = tuple(i.decode("utf-8") for i in group[1])
+            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(segment_items, next(data_nodes_list, None))))
 
         await asyncio.gather(*tasks)
 
