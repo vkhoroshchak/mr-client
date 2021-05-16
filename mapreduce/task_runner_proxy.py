@@ -1,4 +1,7 @@
 import asyncio
+import base64
+import bz2
+import json
 import os
 import uuid
 from itertools import groupby, count, cycle
@@ -92,8 +95,13 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
 
         tasks = []
         for group in groups:
-            segment_items = tuple(i.decode("utf-8") for i in group[1])
-            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(segment_items, next(data_nodes_list, None))))
+            segment_items = bz2.compress(
+                bytes(json.dumps(tuple(i.decode("utf-8") for i in group[1])), encoding="utf-8"))
+
+            encoded = base64.b64encode(segment_items)
+            decoded = encoded.decode('utf-8')
+            del segment_items, encoded
+            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(decoded, next(data_nodes_list, None))))
 
         await asyncio.gather(*tasks)
 
