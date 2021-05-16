@@ -35,6 +35,7 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
 
     logger.info("File(s) uploaded, starting map_reduce phase")
     task.run_tasks(sql, files_info)
+    return JSONResponse("Map reduce request has been successful!")
 
 
 @app.delete("/remove-file-from-cluster", response_description="The file was successfully removed from the cluster!")
