@@ -13,7 +13,7 @@ field_delimiter = ConfigProvider(os.path.join('..', 'config', 'client_config.jso
 
 
 class BaseCommand(object):
-    def __init__(self, session, command_body=None):
+    def __init__(self, session=None, command_body=None):
         self.session = session
         self.command_body = command_body
 
@@ -37,7 +37,7 @@ class CheckIfFileIsOnCLuster(BaseCommand):
 
     def __init__(self, file_name):
         self.command_body = {'file_name': file_name}
-        super().__init__(self.command_body)
+        super().__init__(command_body=self.command_body)
 
     def validate(self):
         if not self.command_body.get('file_name'):
@@ -52,7 +52,7 @@ class CheckIfFileIsOnCLuster(BaseCommand):
 class GetDataNodesListCommand(BaseCommand):
 
     def __init__(self, session):
-        super().__init__(session)
+        super().__init__(session=session)
 
     def validate(self):
         pass
@@ -69,7 +69,7 @@ class ClearDataCommand(BaseCommand):
         self.command_body = {'file_id': file_id,
                              'remove_all_data': remove_all}
 
-        super().__init__(self.command_body)
+        super().__init__(command_body=self.command_body)
 
     def validate(self):
         if not self.command_body.get('file_id'):
@@ -85,7 +85,7 @@ class CreateConfigAndFilesystem(BaseCommand):
 
     def __init__(self, session, file_name):
         self.command_body = {'file_name': file_name, 'field_delimiter': field_delimiter}
-        super().__init__(session, self.command_body)
+        super().__init__(session=session, command_body=self.command_body)
 
     def validate(self):
         if not self.command_body.get('file_name'):
@@ -105,7 +105,7 @@ class GetFileCommand(BaseCommand):
 
     def __init__(self, file_name):
         self.command_body = {"file_name": file_name}
-        super().__init__(self.command_body)
+        super().__init__(command_body=self.command_body)
 
     def validate(self):
         pass
@@ -120,7 +120,7 @@ class GetFileFromClusterCommand(BaseCommand):
     def __init__(self, file_name, dest_file_name):
         self.command_body = {"file_name": file_name,
                              "dest_file_name": dest_file_name}
-        super().__init__(self.command_body)
+        super().__init__(command_body=self.command_body)
 
     def validate(self):
         if not self.command_body.get('file_name'):
@@ -141,7 +141,7 @@ class GetResultOfKeyCommand(BaseCommand):
         self.command_body = {"file_name": file_name,
                              "key": key,
                              "field_delimiter": field_delimiter}
-        super().__init__(self.command_body)
+        super().__init__(command_body=self.command_body)
 
     def validate(self):
         if not self.command_body.get('key'):
@@ -168,7 +168,7 @@ class MapCommand(BaseCommand):
         self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id}
         self._set_mapper_from_file(mapper) if is_mapper_in_file else self._set_mapper(mapper)
 
-        super().__init__(self.command_body)
+        super().__init__(command_body=self.command_body)
 
     def _set_mapper_from_file(self, path):
         with open(path, 'rb') as file:
@@ -200,7 +200,7 @@ class ReduceCommand(BaseCommand):
         self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id, "source_file": source_file}
         self._set_reducer_from_file(reducer) if is_reducer_in_file else self._set_reducer(reducer)
 
-        super().__init__(self.command_body)
+        super().__init__(command_body=self.command_body)
 
     def _set_reducer_from_file(self, path):
         with open(path, 'rb') as file:
@@ -227,7 +227,7 @@ class ReduceCommand(BaseCommand):
 class MoveFileToInitFolderCommand(BaseCommand):
     def __init__(self, file_name):
         self.command_body = {'file_name': file_name}
-        super().__init__(self.command_body)
+        super().__init__(command_body=self.command_body)
 
     def validate(self):
         pass
@@ -244,7 +244,7 @@ class RefreshTableCommand(BaseCommand):
             "ip": ip,
             "segment_name": segment_name,
         }
-        super().__init__(session, self.command_body)
+        super().__init__(session=session, command_body=self.command_body)
 
     def validate(self):
         if not self.command_body.get('file_id'):
@@ -268,7 +268,7 @@ class ShuffleCommand(BaseCommand):
             "field_delimiter": field_delimiter,
             "file_id": file_id,
         }
-        super().__init__(self.command_body)
+        super().__init__(command_body=self.command_body)
 
     def validate(self):
         pass
@@ -287,7 +287,7 @@ class WriteCommand(BaseCommand):
             "segment": segment,
             "data_node_ip": data_node_ip,
         }
-        super().__init__(session, self.command_body)
+        super().__init__(session=session, command_body=self.command_body)
 
     def validate(self):
         if not self.command_body.get('segment'):

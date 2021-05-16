@@ -12,7 +12,7 @@ address = f"http://{config_provider.arbiter_address}"
 async def send_request(session: ClientSession, data, command, ip=address, method: str = "POST"):
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     async with session.request(url=f"{ip}/command/{command}", headers=headers, json=data, method=method) as resp:
-        return await resp.json()
+        return await resp.json(content_type=None)
 
 
 def post(data, command, ip=address):
