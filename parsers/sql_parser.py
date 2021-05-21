@@ -347,7 +347,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
     def parse_where(parsed_where):
         if parsed_where:
             main_oper = list(parsed_where.keys())[0]
-            if main_oper == "none":
+            if main_oper in ("none", None):
                 dict_for_process = parsed_where[main_oper]
                 command = where_dict_to_command(dict_for_process)
             else:

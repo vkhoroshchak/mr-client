@@ -68,38 +68,49 @@ def clear_data(file_id: str, clear_all: bool):
 async def push_file_on_cluster(uploaded_file: UploadFile):
     async with ClientSession() as session:
         response = await create_config_and_filesystem(session, uploaded_file.filename)
+        logger.info(f"Got a response from create_config_and_filesystem: {response}")
         data_nodes_list = await get_data_nodes_list(session)
+        logger.info(f"Received data nodes list: {data_nodes_list}")
         data_nodes_list = cycle(data_nodes_list)
         row_limit = response.get("distribution")
         file_id = response.get("file_id")
 
         file_name, file_ext = os.path.splitext(uploaded_file.filename)
+        logger.info("getting file content")
         file_obj = uploaded_file.file._file  # noqa
         headers = next(file_obj, None)
 
         if headers:
             headers = headers.decode("utf-8")
 
+        logger.info("before groupby")
         groups = groupby(file_obj, key=lambda _, line=count(): next(line, None) // row_limit)
+        logger.info("after groupby")
 
         async def push_chunk_on_cluster(chunk, ip):
             ip = f"http://{ip}"  # noqa
 
             chunk_name = f"{uuid.uuid4()}{file_ext}"
+            logger.info("before write")
             await write(session,
                         file_id,
                         chunk_name,
                         {"headers": headers, "items": chunk},
                         ip)
+            logger.info("after write")
+            logger.info("before refresh table")
             await refresh_table(session, file_id, ip, chunk_name)
+            logger.info("after refresh table")
 
         tasks = []
         for group in groups:
+            logger.info(f"group: {group}")
             segment_items = bz2.compress(
                 bytes(json.dumps(tuple(i.decode("utf-8") for i in group[1])), encoding="utf-8"))
-
+            logger.info("compressed!")
             encoded = base64.b64encode(segment_items)
             decoded = encoded.decode('utf-8')
+            logger.info('decoded!')
             del segment_items, encoded
             tasks.append(asyncio.ensure_future(push_chunk_on_cluster(decoded, next(data_nodes_list, None))))
 
@@ -120,7 +131,6 @@ def run_tasks(sql, files_info):
     parsed_sql = sql if type(sql) is dict else sql_parser.SQLParser.sql_parser(sql)
     field_delimiter = config_provider.field_delimiter
     from_file = parsed_sql['from']
-
     if type(from_file) is dict:
         from_file = run_tasks(from_file, files_info)
     if type(from_file) is tuple:

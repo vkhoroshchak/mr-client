@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 import mapreduce.task_runner_proxy as task
 from config.logger import client_logger
+import time
 
 logger = client_logger.get_logger(__name__)
 
@@ -19,6 +20,7 @@ app = FastAPI()
 
 @app.post("/run-map-reduce")
 async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(...)):
+    start = time.time()
     files_info = {}
     for file in files:
         logger.info(f"Pushing {file.filename} into a cluster")
@@ -35,6 +37,8 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
 
     logger.info("File(s) uploaded, starting map_reduce phase")
     task.run_tasks(sql, files_info)
+    end = time.time()
+    print(end - start)
     return JSONResponse("Map reduce request has been successful!")
 
 
@@ -46,7 +50,10 @@ async def remove_file_from_cluster(file_id: str, clear_all: bool):
 
 @app.post("/push-file-on-cluster", response_description="The file was successfully uploaded to the cluster!")
 async def push_file_on_cluster(file: UploadFile = File(...)):
+    start = time.time()
     file_id = await task.push_file_on_cluster(file)
+    end = time.time()
+    print(end - start)
     return {"file_id": file_id}
 
 
