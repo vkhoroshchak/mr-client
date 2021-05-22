@@ -53,7 +53,7 @@ async def push_file_on_cluster(file: UploadFile = File(...)):
     start = time.time()
     file_id = await task.push_file_on_cluster(file)
     end = time.time()
-    print(end - start)
+    print(f"TOTAL TIME: {end - start}")
     return {"file_id": file_id}
 
 

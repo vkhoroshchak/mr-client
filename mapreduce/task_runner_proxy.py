@@ -1,11 +1,12 @@
 import asyncio
-import base64
-import bz2
 import json
+import math
 import os
+import sys
 import uuid
-from itertools import groupby, count, cycle
+from itertools import cycle
 
+import psutil
 from aiohttp import ClientSession
 from fastapi import UploadFile
 
@@ -65,6 +66,40 @@ def clear_data(file_id: str, clear_all: bool):
     return commands.ClearDataCommand(file_id, clear_all).send_command()
 
 
+def get_file_len(file):
+    i = 0
+    for i, _ in enumerate(file):
+        pass
+
+    file.seek(0)
+    return i
+
+
+def get_num_of_workers(file_obj, chunk_size):
+    chunk_size = sys.getsizeof(json.dumps(next(read_file_by_chunks(file_obj, chunk_size))))
+    free_ram = psutil.virtual_memory().free
+    logger.info(f"Free RAM in MB: {free_ram / 1000000}")
+    logger.info(f"Chunk size in MB: {chunk_size / 1000000}")
+
+    num_of_workers = math.floor(free_ram / chunk_size * 0.2)
+    file_obj.seek(0)
+    logger.info(f"Num of workers: {num_of_workers}")
+    return num_of_workers
+
+
+def read_file_by_chunks(file_obj, chunk_size: int):
+    chunk = []
+    counter = 0
+    for piece in file_obj:
+        if counter == chunk_size:
+            yield chunk
+            chunk = []
+            counter = 0
+        counter += 1
+        chunk.append(piece.decode("utf-8"))
+    yield chunk
+
+
 async def push_file_on_cluster(uploaded_file: UploadFile):
     async with ClientSession() as session:
         response = await create_config_and_filesystem(session, uploaded_file.filename)
@@ -77,42 +112,44 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
 
         file_name, file_ext = os.path.splitext(uploaded_file.filename)
         logger.info("getting file content")
+
         file_obj = uploaded_file.file._file  # noqa
+        num_of_workers = get_num_of_workers(file_obj, row_limit)
+        file_len = get_file_len(file_obj)
         headers = next(file_obj, None)
 
         if headers:
             headers = headers.decode("utf-8")
 
-        logger.info("before groupby")
-        groups = groupby(file_obj, key=lambda _, line=count(): next(line, None) // row_limit)
-        logger.info("after groupby")
+        mySemaphore = asyncio.Semaphore(num_of_workers)
 
-        async def push_chunk_on_cluster(chunk, ip):
+        async def push_chunk_on_cluster(ip):
+
+            await mySemaphore.acquire()
+            logger.info("Acquired")
             ip = f"http://{ip}"  # noqa
+            chunk = next(read_file_by_chunks(file_obj, row_limit), None)
 
-            chunk_name = f"{uuid.uuid4()}{file_ext}"
-            logger.info("before write")
-            await write(session,
-                        file_id,
-                        chunk_name,
-                        {"headers": headers, "items": chunk},
-                        ip)
-            logger.info("after write")
-            logger.info("before refresh table")
-            await refresh_table(session, file_id, ip, chunk_name)
-            logger.info("after refresh table")
+            if chunk:
+                async with ClientSession() as new_session:
+                    chunk_name = f"{uuid.uuid4()}{file_ext}"
+                    logger.info("before write")
+                    await write(new_session,
+                                file_id,
+                                chunk_name,
+                                {"headers": headers, "items": json.dumps(chunk)},
+                                ip)
+                    logger.info("after write")
+                    logger.info("before refresh table")
+                    await refresh_table(new_session, file_id, ip, chunk_name)
+                    logger.info("after refresh table")
+            mySemaphore.release()
+            logger.info("Released")
 
         tasks = []
-        for group in groups:
-            logger.info(f"group: {group}")
-            segment_items = bz2.compress(
-                bytes(json.dumps(tuple(i.decode("utf-8") for i in group[1])), encoding="utf-8"))
-            logger.info("compressed!")
-            encoded = base64.b64encode(segment_items)
-            decoded = encoded.decode('utf-8')
-            logger.info('decoded!')
-            del segment_items, encoded
-            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(decoded, next(data_nodes_list, None))))
+        for i in range((file_len // row_limit) + 1):
+            logger.info(f"group: {i}")
+            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(next(data_nodes_list, None))))
 
         await asyncio.gather(*tasks)
 
