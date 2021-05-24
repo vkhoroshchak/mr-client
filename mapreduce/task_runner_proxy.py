@@ -58,8 +58,29 @@ def send_info():
     pass
 
 
-def get_file(file_name, ip=None):
-    return commands.GetFileCommand(file_name).send_command(ip=ip)
+async def get_file(file_id, ip=None):
+    async with ClientSession() as session:
+        data_nodes = await get_data_nodes_list(session)
+        file_name = await commands.GetFileNameCommand(file_id, session).send_command(ip=ip)
+        print(64, data_nodes)
+        file_segments = []
+        for data_node_ip in data_nodes:
+            # res = await commands.GetFileCommand(file_id, file_name, session).send_command(ip=f"http://{data_node_ip}") # noqa
+            async with session.request(url=f"http://{data_node_ip}/command/get_file", json={
+                'file_id': file_id,
+                'file_name': file_name,
+            },
+                                       method="GET") as resp:
+                res = await resp.json(content_type=None)
+                print(74, res)
+                file_segments.append(res)
+                # return res
+        print(69, file_segments)
+        return file_segments
+        # return ""
+
+#     print(64, res)
+#     return res
 
 
 def clear_data(file_id: str, clear_all: bool):

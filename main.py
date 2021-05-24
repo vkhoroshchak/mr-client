@@ -1,13 +1,15 @@
+import os.path
 from typing import List
 
-# from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse
 from fastapi import (
     FastAPI,
     File,
     UploadFile,
     Body,
 )
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+import dask.dataframe as dd
 
 import mapreduce.task_runner_proxy as task
 from config.logger import client_logger
@@ -59,9 +61,20 @@ async def push_file_on_cluster(file: UploadFile = File(...)):
 
 # TODO: To think about the implementation
 @app.post("/get-file-from-cluster")
-async def get_file_from_cluster(file_name: str):
+async def get_file_from_cluster(file_id: str):
     # get_file
-    pass
-    # some_file_path = ""
+
+    # pass
+    # some_file_path = await task.get_file(file_name)
+    some_file_path = await task.get_file(file_id)
+    file_name = ""
+    if some_file_path:
+        for file_path in some_file_path:
+            file_name = file_path.split(os.sep)[-2]
+            print(71, file_name)
+            df = dd.read_csv(file_path)
+            df = dd.to_csv(df, file_name, single_file=True, mode="a")
+        # print(68, some_file_path)
+        return FileResponse(file_name)
 
     # return FileResponse(some_file_path, filename=file_name, media_type="text/csv")

@@ -103,16 +103,31 @@ class CreateConfigAndFilesystem(BaseCommand):
 
 class GetFileCommand(BaseCommand):
 
-    def __init__(self, file_name):
-        self.command_body = {"file_name": file_name}
-        super().__init__(command_body=self.command_body)
+    def __init__(self, file_id, file_name, session):
+        self.command_body = {"file_id": file_id,
+                             'file_name': file_name}
+        super().__init__(command_body=self.command_body, session=session)
 
     def validate(self):
         pass
 
-    def send_command(self, ip=None, **kwargs):
+    async def send_command(self, ip=None, **kwargs):
         self.validate()
-        return super().send_command(ip)
+        return await super().send_command_async(command_name='get_file', ip=ip, method="GET", session=self.session)
+
+
+class GetFileNameCommand(BaseCommand):
+
+    def __init__(self, file_id, session):
+        self.command_body = {"file_id": file_id}
+        super().__init__(command_body=self.command_body, session=session)
+
+    def validate(self):
+        pass
+
+    async def send_command(self, ip=None, **kwargs):
+        self.validate()
+        return await super().send_command_async(command_name='get_file_name', ip=ip, method="GET", session=self.session)
 
 
 class GetFileFromClusterCommand(BaseCommand):
