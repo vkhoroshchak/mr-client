@@ -1,7 +1,6 @@
-import os.path
+import time
 from typing import List
 
-from fastapi.responses import FileResponse
 from fastapi import (
     FastAPI,
     File,
@@ -9,11 +8,9 @@ from fastapi import (
     Body,
 )
 from fastapi.responses import JSONResponse, FileResponse
-import dask.dataframe as dd
 
 import mapreduce.task_runner_proxy as task
 from config.logger import client_logger
-import time
 
 logger = client_logger.get_logger(__name__)
 
@@ -41,7 +38,7 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
     task.run_tasks(sql, files_info)
     end = time.time()
     print(end - start)
-    return JSONResponse("Map reduce request has been successful!")
+    return {"files_info": files_info}
 
 
 @app.delete("/remove-file-from-cluster", response_description="The file was successfully removed from the cluster!")
@@ -62,19 +59,6 @@ async def push_file_on_cluster(file: UploadFile = File(...)):
 # TODO: To think about the implementation
 @app.post("/get-file-from-cluster")
 async def get_file_from_cluster(file_id: str):
-    # get_file
-
-    # pass
-    # some_file_path = await task.get_file(file_name)
     some_file_path = await task.get_file(file_id)
-    file_name = ""
-    if some_file_path:
-        for file_path in some_file_path:
-            file_name = file_path.split(os.sep)[-2]
-            print(71, file_name)
-            df = dd.read_csv(file_path)
-            df = dd.to_csv(df, file_name, single_file=True, mode="a")
-        # print(68, some_file_path)
-        return FileResponse(file_name)
 
-    # return FileResponse(some_file_path, filename=file_name, media_type="text/csv")
+    return FileResponse(some_file_path, filename=some_file_path, media_type="text/csv")

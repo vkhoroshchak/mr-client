@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import math
 import os
@@ -6,6 +7,7 @@ import sys
 import uuid
 from itertools import cycle
 
+import pandas as pd
 import psutil
 from aiohttp import ClientSession
 from fastapi import UploadFile
@@ -62,25 +64,24 @@ async def get_file(file_id, ip=None):
     async with ClientSession() as session:
         data_nodes = await get_data_nodes_list(session)
         file_name = await commands.GetFileNameCommand(file_id, session).send_command(ip=ip)
-        print(64, data_nodes)
-        file_segments = []
-        for data_node_ip in data_nodes:
-            # res = await commands.GetFileCommand(file_id, file_name, session).send_command(ip=f"http://{data_node_ip}") # noqa
-            async with session.request(url=f"http://{data_node_ip}/command/get_file", json={
-                'file_id': file_id,
-                'file_name': file_name,
-            },
-                                       method="GET") as resp:
-                res = await resp.json(content_type=None)
-                print(74, res)
-                file_segments.append(res)
-                # return res
-        print(69, file_segments)
-        return file_segments
-        # return ""
 
-#     print(64, res)
-#     return res
+        mode = "w"
+        header = True
+
+        for data_node_ip in data_nodes:
+            async with session.request(url=f"http://{data_node_ip}/command/get_file",  # noqa
+                                       json={'file_id': file_id,
+                                             'file_name': file_name},
+                                       method="POST") as resp:
+                res = await resp.read()
+
+                df = pd.read_csv(io.StringIO(res.decode('utf-8')))
+
+                df.to_csv(file_name, header=header, mode=mode, index=False)
+                header = False
+                mode = "a"
+
+    return file_name
 
 
 def clear_data(file_id: str, clear_all: bool):
