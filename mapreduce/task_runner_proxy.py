@@ -1,183 +1,244 @@
+import asyncio
+import io
+import json
+import math
 import os
+import sys
+import uuid
+from itertools import cycle
 
-from config import config_provider
-from mapreduce.commands import (
-    append_command,
-    clear_data_command,
-    get_file_command,
-    create_config_and_filesystem,
-    map_command,
-    shuffle_command,
-    reduce_command,
-    refresh_table_command,
-    write_command,
-    move_file_to_init_folder_command,
-    check_if_file_is_on_cluster_command,
-    get_file_from_cluster_command
-)
+import pandas as pd
+import psutil
+from aiohttp import ClientSession
+from fastapi import UploadFile
 
-field_delimiter = config_provider.ConfigProvider.get_field_delimiter(
-    os.path.join('..', 'config', 'json', 'client_config.json'))
+import parsers.sql_parser as sql_parser
+from config.config_provider import ConfigProvider
+from config.logger import client_logger
+from mapreduce import commands
+
+logger = client_logger.get_logger(__name__)
+
+config_provider = ConfigProvider(os.path.join('..', 'config', 'client_config.json'))
 
 
-class TaskRunner:
+def get_file_from_cluster(file_name, dest_file_name):
+    return commands.GetFileFromClusterCommand(file_name, dest_file_name).send_command()
 
-    @staticmethod
-    def get_file_from_cluster(file_name, dest_file_name):
-        gffc = get_file_from_cluster_command.GetFileFromClusterCommand()
-        gffc.set_file_name(file_name)
-        gffc.set_dest_file_name(dest_file_name)
-        gffc.validate()
-        gffc.send()
 
-    @staticmethod
-    def create_config_and_filesystem(dest_file):
-        mfc = create_config_and_filesystem.CreateConfigAndFilesystem()
-        mfc.set_destination_file(dest_file)
-        return mfc.send()
+async def create_config_and_filesystem(session, file_name):
+    return await commands.CreateConfigAndFilesystem(session, file_name).send_command_async()
 
-    @staticmethod
-    def main_func(file, row_limit, dest, keep_headers=True):
-        file_name, ext = os.path.splitext(os.path.basename(file))
-        dest_name, dest_ext = os.path.splitext(dest)
-        output_name_template = dest_name + "_%s"
-        output_name_template = output_name_template + ext
-        with open(file, 'r', encoding='utf-8') as f:
-            current_piece = 1
-            headers = f.readline()
-            current_limit = row_limit
 
-            dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
+async def get_data_nodes_list(session):
+    return await commands.GetDataNodesListCommand(session).send_command_async()
 
-            for i, row in enumerate(f):
 
-                if i + 1 > current_limit:
-                    current_piece += 1
-                    current_limit = row_limit * current_piece
-                    if keep_headers:
-                        dict_item["content"]["headers"] = headers
+async def write(session, file_id, file_name, segment, data_node_ip):
+    return await commands.WriteCommand(session, file_id, file_name, segment, data_node_ip).send_command_async()
 
-                    dict_item["file_name"] = output_name_template % (current_piece - 1)
-                    ip = TaskRunner.append(dest)['data_node_ip']
-                    TaskRunner.write(dict_item["file_name"], dict_item["content"], ip)
-                    TaskRunner.refresh_table(dest, ip, dict_item["file_name"])
-                    dict_item = {"file_name": None, "content": {"headers": None, "items": []}}
 
-                dict_item["content"]["items"].append(row)
+async def refresh_table(session, file_id, ip, segment_name):
+    return await commands.RefreshTableCommand(session, file_id, ip, segment_name).send_command_async()
 
-            dict_item["file_name"] = output_name_template % current_piece
 
-            if keep_headers:
-                dict_item["content"]["headers"] = headers
+def start_map_phase(is_mapper_in_file, mapper, file_id):
+    mc = commands.MapCommand(is_mapper_in_file, mapper, file_id)
+    return mc.send_command()
 
-            ip = TaskRunner.append(dest)['data_node_ip']
-            TaskRunner.write(dict_item["file_name"], dict_item["content"], ip)
-            TaskRunner.refresh_table(dest, ip, output_name_template % current_piece)
 
-    @staticmethod
-    def append(file_name):
-        app = append_command.AppendCommand()
-        app.set_file_name(file_name)
-        return app.send()
+def start_shuffle_phase(file_id):
+    return commands.ShuffleCommand(file_id).send_command()
 
-    @staticmethod
-    def write(file_name, segment, data_node_ip):
-        wc = write_command.WriteCommand()
 
-        wc.set_segment(segment)
-        wc.set_file_name(file_name)
-        wc.set_data_node_ip(data_node_ip)
+def start_reduce_phase(is_reducer_in_file, reducer, file_id, source_file):
+    rc = commands.ReduceCommand(is_reducer_in_file, reducer, file_id, source_file)
+    return rc.send_command()
 
-        return wc.send()
 
-    @staticmethod
-    def refresh_table(file_name, ip, segment_name):
-        rtc = refresh_table_command.RefreshTableCommand()
-        rtc.set_file_name(file_name)
-        rtc.set_ip(ip)
-        rtc.set_segment_name(segment_name)
+def send_info():
+    pass
 
-        return rtc.send()
 
-    @staticmethod
-    def map(is_mapper_in_file, mapper, is_server_source_file, source_file, destination_file):
-        mc = map_command.MapCommand()
-        if is_mapper_in_file is False:
-            mc.set_mapper(mapper)
-        else:
-            mc.set_mapper_from_file(mapper)
+async def get_file(file_id, ip=None):
+    async with ClientSession() as session:
+        data_nodes = await get_data_nodes_list(session)
+        file_name = await commands.GetFileNameCommand(file_id, session).send_command(ip=ip)
 
-        if is_server_source_file is True:
-            mc.set_server_source_file(source_file)
-        else:
-            mc.set_source_file(source_file)
+        mode = "w"
+        header = True
 
-        mc.set_field_delimiter(field_delimiter)
-        mc.set_destination_file(destination_file)
+        for data_node_ip in data_nodes:
+            async with session.request(url=f"http://{data_node_ip}/command/get_file",  # noqa
+                                       json={'file_id': file_id,
+                                             'file_name': file_name},
+                                       method="POST") as resp:
+                res = await resp.read()
 
-        return mc.send()
+                df = pd.read_csv(io.StringIO(res.decode('utf-8')))
 
-    @staticmethod
-    def shuffle(source_file):
-        sc = shuffle_command.ShuffleCommand()
-        sc.set_source_file(source_file)
-        sc.set_field_delimiter(field_delimiter)
-        return sc.send()
+                df.to_csv(file_name, header=header, mode=mode, index=False)
+                header = False
+                mode = "a"
 
-    @staticmethod
-    def reduce(is_reducer_in_file, reducer, is_server_source_file, source_file, destination_file):
-        rc = reduce_command.ReduceCommand()
+    return file_name
 
-        if is_reducer_in_file is False:
-            rc.set_reducer(reducer)
-        else:
-            rc.set_reducer_from_file(reducer)
 
-        if is_server_source_file is True:
-            rc.set_server_source_file(source_file)
-        else:
-            rc.set_source_file(source_file)
+def clear_data(file_id: str, clear_all: bool):
+    return commands.ClearDataCommand(file_id, clear_all).send_command()
 
-        rc.set_field_delimiter(field_delimiter)
-        rc.set_destination_file(destination_file)
-        return rc.send()
 
-    @staticmethod
-    def send_info():
+def get_file_len(file):
+    i = 0
+    for i, _ in enumerate(file):
         pass
 
-    @staticmethod
-    def get_file(file_name, ip=None):
-        get_file = get_file_command.GetFileCommand()
-        get_file.set_file_name(file_name)
-        if not ip:
-            return get_file.send()
-        else:
-            return get_file.send(ip, )
+    file.seek(0)
+    return i
 
-    @staticmethod
-    def clear_data(folder_name):
-        clear_data = clear_data_command.ClearDataCommand()
-        folder_name_arr = folder_name.split(',')
-        clear_data.set_folder_name(folder_name_arr[0])
-        clear_data.set_remove_all_data(bool(int(folder_name_arr[1])))
 
-        return clear_data.send()
+def get_num_of_workers(file_obj, chunk_size):
+    chunk_size = sys.getsizeof(json.dumps(next(read_file_by_chunks(file_obj, chunk_size))))
+    free_ram = psutil.virtual_memory().free
+    logger.info(f"Free RAM in MB: {free_ram / 1000000}")
+    logger.info(f"Chunk size in MB: {chunk_size / 1000000}")
 
-    @staticmethod
-    def push_file_on_cluster(src_file, dest_file):
-        dest_file = os.path.basename(src_file)
-        dist = TaskRunner.create_config_and_filesystem(dest_file)
+    num_of_workers = math.floor(free_ram / chunk_size * 0.2)
+    file_obj.seek(0)
+    logger.info(f"Num of workers: {num_of_workers}")
+    return num_of_workers
 
-        TaskRunner.main_func(src_file, dist['distribution'], dest_file)
 
-    @staticmethod
-    def move_file_to_init_folder(file_name):
-        mftifc = move_file_to_init_folder_command.MoveFileToInitFolderCommand(file_name)
-        mftifc.send()
+def read_file_by_chunks(file_obj, chunk_size: int):
+    chunk = []
+    counter = 0
+    for piece in file_obj:
+        if counter == chunk_size:
+            yield chunk
+            chunk = []
+            counter = 0
+        counter += 1
+        chunk.append(piece.decode("utf-8"))
+    yield chunk
 
-    @staticmethod
-    def check_if_file_is_on_cluster(file_name):
-        cifioc = check_if_file_is_on_cluster_command.CheckIfFileIsOnCLuster()
-        cifioc.set_file_name(file_name)
-        return cifioc.send()
+
+async def push_file_on_cluster(uploaded_file: UploadFile):
+    async with ClientSession() as session:
+        response = await create_config_and_filesystem(session, uploaded_file.filename)
+        logger.info(f"Got a response from create_config_and_filesystem: {response}")
+        data_nodes_list = await get_data_nodes_list(session)
+        logger.info(f"Received data nodes list: {data_nodes_list}")
+        data_nodes_list = cycle(data_nodes_list)
+        row_limit = response.get("distribution")
+        file_id = response.get("file_id")
+
+        file_name, file_ext = os.path.splitext(uploaded_file.filename)
+        logger.info("getting file content")
+
+        file_obj = uploaded_file.file._file  # noqa
+        num_of_workers = get_num_of_workers(file_obj, row_limit)
+        file_len = get_file_len(file_obj)
+        headers = next(file_obj, None)
+
+        if headers:
+            headers = headers.decode("utf-8")
+
+        mySemaphore = asyncio.Semaphore(num_of_workers)
+
+        async def push_chunk_on_cluster(ip):
+
+            await mySemaphore.acquire()
+            logger.info("Acquired")
+            ip = f"http://{ip}"  # noqa
+            chunk = next(read_file_by_chunks(file_obj, row_limit), None)
+
+            if chunk:
+                async with ClientSession() as new_session:
+                    chunk_name = f"{uuid.uuid4()}{file_ext}"
+                    logger.info("before write")
+                    await write(new_session,
+                                file_id,
+                                chunk_name,
+                                {"headers": headers, "items": json.dumps(chunk)},
+                                ip)
+                    logger.info("after write")
+                    logger.info("before refresh table")
+                    await refresh_table(new_session, file_id, ip, chunk_name)
+                    logger.info("after refresh table")
+            mySemaphore.release()
+            logger.info("Released")
+
+        tasks = []
+        for i in range((file_len // row_limit) + 1):
+            logger.info(f"group: {i}")
+            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(next(data_nodes_list, None))))
+
+        await asyncio.gather(*tasks)
+
+    return file_id
+
+
+def move_file_to_init_folder(file_name):
+    return commands.MoveFileToInitFolderCommand(file_name).send_command()
+
+
+def check_if_file_is_on_cluster(file_name):
+    return commands.CheckIfFileIsOnCLuster(file_name).send_command()
+
+
+def run_tasks(sql, files_info):
+    parsed_sql = sql if type(sql) is dict else sql_parser.SQLParser.sql_parser(sql)
+    field_delimiter = config_provider.field_delimiter
+    from_file = parsed_sql['from']
+    if type(from_file) is dict:
+        from_file = run_tasks(from_file, files_info)
+    if type(from_file) is tuple:
+        reducer = sql_parser.custom_reducer(parsed_sql, field_delimiter)
+
+        for file_name in from_file:
+            own_select = sql_parser.SQLParser.split_select_cols(file_name, parsed_sql['select'])
+            key_col = sql_parser.SQLParser.get_key_col(parsed_sql, file_name)
+
+            mapper = sql_parser.custom_mapper(key_col, own_select, field_delimiter)
+            file_id = files_info[file_name]
+            start_map_phase(
+                is_mapper_in_file=False,
+                mapper=mapper,
+                file_id=file_id,
+            )
+            start_shuffle_phase(file_id=file_id)
+
+        file_name = from_file[0]
+
+        start_reduce_phase(
+            is_reducer_in_file=False,
+            reducer=reducer,
+            file_id=files_info[file_name],
+            source_file=list(from_file)
+        )
+        return file_name
+
+    else:
+
+        key_col = sql_parser.SQLParser.get_key_col(parsed_sql, from_file)
+        reducer = sql_parser.custom_reducer(parsed_sql, field_delimiter)
+        mapper = sql_parser.custom_mapper(key_col, parsed_sql['select'], field_delimiter)
+
+        if type(from_file) is tuple:
+            from_file = from_file[0]
+
+        file_id = files_info[from_file]
+        start_map_phase(
+            is_mapper_in_file=False,
+            mapper=mapper,
+            file_id=file_id,
+        )
+        start_shuffle_phase(file_id=file_id)
+
+        start_reduce_phase(
+            is_reducer_in_file=False,
+            reducer=reducer,
+            file_id=file_id,
+            source_file=from_file
+        )
+        return from_file
