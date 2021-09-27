@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3"
 services:
   backend:
     build: .
@@ -6,3 +6,9 @@ services:
       - "3000:3000"
     volumes:
       - .:/app
+    networks:
+      - mr_network
+
+networks:
+  mr_network:
+    external: true
