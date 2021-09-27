@@ -57,7 +57,7 @@ async def push_file_on_cluster(file: UploadFile = File(...)):
 
 
 # TODO: To think about the implementation
-@app.post("/get-file-from-cluster")
+@app.get("/get-file-from-cluster")
 async def get_file_from_cluster(file_id: str):
     some_file_path = await task.get_file(file_id)
 

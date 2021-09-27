@@ -68,12 +68,15 @@ async def get_file(file_id, ip=None):
         mode = "w"
         header = True
 
+        logger.info(f"File id: {file_id}; file_name = {file_name}")
+
         for data_node_ip in data_nodes:
             async with session.request(url=f"http://{data_node_ip}/command/get_file",  # noqa
                                        json={'file_id': file_id,
                                              'file_name': file_name},
-                                       method="POST") as resp:
+                                       method="GET") as resp:
                 res = await resp.read()
+                logger.info(f"result from get file: {res}")
 
                 df = pd.read_csv(io.StringIO(res.decode('utf-8')))
 
