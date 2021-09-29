@@ -77,12 +77,12 @@ async def get_file(file_id, ip=None):
                                        method="GET") as resp:
                 res = await resp.read()
                 logger.info(f"result from get file: {res}")
+                if res:
+                    df = pd.read_csv(io.StringIO(res.decode('utf-8')))
 
-                df = pd.read_csv(io.StringIO(res.decode('utf-8')))
-
-                df.to_csv(file_name, header=header, mode=mode, index=False)
-                header = False
-                mode = "a"
+                    df.to_csv(file_name, header=header, mode=mode, index=False)
+                    header = False
+                    mode = "a"
 
     return file_name
 
