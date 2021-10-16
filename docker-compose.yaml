@@ -1,14 +1,13 @@
-version: "3"
+version: '3'
 services:
   backend:
     build: .
     ports:
-      - "3000:3000"
+    - 3000:3000
     volumes:
-      - .:/app
+    - .:/app
     networks:
-      - mr_network
-
+    - mr_network
 networks:
   mr_network:
     external: true
