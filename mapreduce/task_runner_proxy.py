@@ -1,16 +1,16 @@
 import asyncio
+import hashlib
 import io
 import json
 import math
 import os
-import sys
-import uuid
-from itertools import cycle
-
 import pandas as pd
 import psutil
+import sys
+import uuid
 from aiohttp import ClientSession
 from fastapi import UploadFile
+from itertools import cycle
 
 import parsers.sql_parser as sql_parser
 from config.config_provider import ConfigProvider
@@ -91,13 +91,23 @@ def clear_data(file_id: str, clear_all: bool):
     return commands.ClearDataCommand(file_id, clear_all).send_command()
 
 
-def get_file_len(file):
+#
+# def md5(file):
+#     hash_md5 = hashlib.md5()
+#     for chunk in iter(lambda: file.read(4096), b""):
+#         hash_md5.update(chunk)
+#     file.seek(0)
+#     return hash_md5.hexdigest()
+
+
+def get_file_props(file):
     i = 0
-    for i, _ in enumerate(file):
-        pass
+    hash_md5 = hashlib.md5()
+    for i, row in enumerate(file):
+        hash_md5.update(row)
 
     file.seek(0)
-    return i
+    return i, hash_md5.hexdigest()
 
 
 def get_num_of_workers(file_obj, chunk_size):
@@ -127,6 +137,8 @@ def read_file_by_chunks(file_obj, chunk_size: int):
 
 async def push_file_on_cluster(uploaded_file: UploadFile):
     async with ClientSession() as session:
+        file_obj = uploaded_file.file._file  # noqa
+        file_len, md5_hash = get_file_props(file_obj)
         response = await create_config_and_filesystem(session, uploaded_file.filename)
         logger.info(f"Got a response from create_config_and_filesystem: {response}")
         data_nodes_list = await get_data_nodes_list(session)
@@ -138,9 +150,8 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
         file_name, file_ext = os.path.splitext(uploaded_file.filename)
         logger.info("getting file content")
 
-        file_obj = uploaded_file.file._file  # noqa
         num_of_workers = get_num_of_workers(file_obj, row_limit)
-        file_len = get_file_len(file_obj)
+
         headers = next(file_obj, None)
 
         if headers:
@@ -185,8 +196,13 @@ def move_file_to_init_folder(file_name):
     return commands.MoveFileToInitFolderCommand(file_name).send_command()
 
 
-def check_if_file_is_on_cluster(file_name):
-    return commands.CheckIfFileIsOnCLuster(file_name).send_command()
+async def check_if_file_is_on_cluster(uploaded_file: UploadFile):
+    async with ClientSession() as session:
+        file_obj = uploaded_file.file._file  # noqa
+        file_len, md5_hash = get_file_props(file_obj)
+        resp = await commands.CheckIfFileIsOnCLuster(session, uploaded_file.filename, md5_hash).send_command_async(
+            method="GET")
+    return resp
 
 
 def run_tasks(sql, files_info):

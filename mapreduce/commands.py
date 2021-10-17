@@ -35,18 +35,25 @@ class BaseCommand(object):
 
 class CheckIfFileIsOnCLuster(BaseCommand):
 
-    def __init__(self, file_name):
-        self.command_body = {'file_name': file_name}
-        super().__init__(command_body=self.command_body)
+    def __init__(self, session, file_name, md5_hash):
+        self.command_body = {'file_name': file_name, "md5_hash": md5_hash}
+        super().__init__(session=session, command_body=self.command_body)
 
     def validate(self):
         if not self.command_body.get('file_name'):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail='File name is not specified!')
+        if not self.command_body.get('md5_hash'):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail='md5_hash is not specified!')
 
     def send_command(self, **kwargs):
         self.validate()
         return super().send_command(command_name='check_if_file_is_on_cluster')
+
+    async def send_command_async(self, **kwargs):
+        self.validate()
+        return await super().send_command_async(self.session, command_name='check_if_file_is_on_cluster', method="GET")
 
 
 class GetDataNodesListCommand(BaseCommand):

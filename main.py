@@ -31,6 +31,7 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
         # else:
         #     task.create_config_and_filesystem(file.filename)
         #     task.move_file_to_init_folder(file.filename)
+
         file_id = await task.push_file_on_cluster(file)
         files_info[file.filename] = file_id
 
@@ -49,10 +50,13 @@ async def remove_file_from_cluster(file_id: str, clear_all: bool):
 
 @app.post("/push-file-on-cluster", response_description="The file was successfully uploaded to the cluster!")
 async def push_file_on_cluster(file: UploadFile = File(...)):
-    start = time.time()
-    file_id = await task.push_file_on_cluster(file)
-    end = time.time()
-    print(f"TOTAL TIME: {end - start}")
+    is_file_on_cluster_resp = await task.check_if_file_is_on_cluster(file)
+    is_file_on_cluster = is_file_on_cluster_resp.get("is_file_on_cluster")
+    file_id = is_file_on_cluster_resp.get("file_id")
+    if is_file_on_cluster:
+        logger.info("File already exists on the cluster! Not pushing again...")
+    else:
+        file_id = await task.push_file_on_cluster(file)
     return {"file_id": file_id}
 
 
