@@ -90,8 +90,8 @@ class ClearDataCommand(BaseCommand):
 
 class CreateConfigAndFilesystem(BaseCommand):
 
-    def __init__(self, session, file_name):
-        self.command_body = {'file_name': file_name, 'field_delimiter': field_delimiter}
+    def __init__(self, session, file_name, md5_hash):
+        self.command_body = {'file_name': file_name, 'field_delimiter': field_delimiter, 'md5_hash': md5_hash}
         super().__init__(session=session, command_body=self.command_body)
 
     def validate(self):

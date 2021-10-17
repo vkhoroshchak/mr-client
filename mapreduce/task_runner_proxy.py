@@ -26,8 +26,8 @@ def get_file_from_cluster(file_name, dest_file_name):
     return commands.GetFileFromClusterCommand(file_name, dest_file_name).send_command()
 
 
-async def create_config_and_filesystem(session, file_name):
-    return await commands.CreateConfigAndFilesystem(session, file_name).send_command_async()
+async def create_config_and_filesystem(session, file_name, md5_hash):
+    return await commands.CreateConfigAndFilesystem(session, file_name, md5_hash).send_command_async()
 
 
 async def get_data_nodes_list(session):
@@ -139,7 +139,7 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
     async with ClientSession() as session:
         file_obj = uploaded_file.file._file  # noqa
         file_len, md5_hash = get_file_props(file_obj)
-        response = await create_config_and_filesystem(session, uploaded_file.filename)
+        response = await create_config_and_filesystem(session, uploaded_file.filename, md5_hash)
         logger.info(f"Got a response from create_config_and_filesystem: {response}")
         data_nodes_list = await get_data_nodes_list(session)
         logger.info(f"Received data nodes list: {data_nodes_list}")
