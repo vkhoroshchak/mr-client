@@ -91,22 +91,15 @@ def clear_data(file_id: str, clear_all: bool):
     return commands.ClearDataCommand(file_id, clear_all).send_command()
 
 
-#
-# def md5(file):
-#     hash_md5 = hashlib.md5()
-#     for chunk in iter(lambda: file.read(4096), b""):
-#         hash_md5.update(chunk)
-#     file.seek(0)
-#     return hash_md5.hexdigest()
-
-
 def get_file_props(file):
-    i = 0
+    content = file.read()
     hash_md5 = hashlib.md5()
-    for i, row in enumerate(file):
-        hash_md5.update(row)
-
+    hash_md5.update(content)
     file.seek(0)
+
+    i = len(file.readlines())
+    file.seek(0)
+
     return i, hash_md5.hexdigest()
 
 
@@ -183,6 +176,7 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
             logger.info("Released")
 
         tasks = []
+        logger.info(f"{file_len=}, {row_limit=}")
         for i in range((file_len // row_limit) + 1):
             logger.info(f"group: {i}")
             tasks.append(asyncio.ensure_future(push_chunk_on_cluster(next(data_nodes_list, None))))
@@ -200,8 +194,7 @@ async def check_if_file_is_on_cluster(uploaded_file: UploadFile):
     async with ClientSession() as session:
         file_obj = uploaded_file.file._file  # noqa
         file_len, md5_hash = get_file_props(file_obj)
-        resp = await commands.CheckIfFileIsOnCLuster(session, uploaded_file.filename, md5_hash).send_command_async(
-            method="GET")
+        resp = await commands.CheckIfFileIsOnCLuster(session, uploaded_file.filename, md5_hash).send_command_async()
     return resp
 
 
