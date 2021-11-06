@@ -119,12 +119,13 @@ def read_file_by_chunks(file_obj, chunk_size: int):
     chunk = []
     counter = 0
     for piece in file_obj:
+        logger.info(f"{counter=}, {chunk_size=}, {piece.decode('utf-8')=}")
+        counter += 1
+        chunk.append(piece.decode("utf-8"))
         if counter == chunk_size:
             yield chunk
             chunk = []
             counter = 0
-        counter += 1
-        chunk.append(piece.decode("utf-8"))
     yield chunk
 
 
@@ -149,16 +150,17 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
 
         if headers:
             headers = headers.decode("utf-8")
+            file_len -= 1
 
         mySemaphore = asyncio.Semaphore(num_of_workers)
 
         async def push_chunk_on_cluster(ip):
 
             await mySemaphore.acquire()
-            logger.info("Acquired")
+            logger.info(f"Acquired {ip=}")
             ip = f"http://{ip}"  # noqa
             chunk = next(read_file_by_chunks(file_obj, row_limit), None)
-
+            logger.info(f"{chunk=}")
             if chunk:
                 async with ClientSession() as new_session:
                     chunk_name = f"{uuid.uuid4()}{file_ext}"
@@ -176,8 +178,12 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
             logger.info("Released")
 
         tasks = []
-        logger.info(f"{file_len=}, {row_limit=}")
-        for i in range((file_len // row_limit) + 1):
+        num_iterations = file_len // row_limit
+        if file_len // row_limit != file_len / row_limit:
+            num_iterations += 1
+
+        logger.info(f"{file_len=}, {row_limit=}, {num_iterations=}")
+        for i in range(num_iterations):
             logger.info(f"group: {i}")
             tasks.append(asyncio.ensure_future(push_chunk_on_cluster(next(data_nodes_list, None))))
 
