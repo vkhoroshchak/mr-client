@@ -6,6 +6,7 @@ from fastapi import (
     File,
     UploadFile,
     Body,
+    HTTPException,
 )
 from fastapi.responses import JSONResponse, FileResponse
 
@@ -64,5 +65,7 @@ async def push_file_on_cluster(file: UploadFile = File(...)):
 @app.get("/get-file-from-cluster")
 async def get_file_from_cluster(file_id: str):
     some_file_path = await task.get_file(file_id)
-
-    return FileResponse(some_file_path, filename=some_file_path, media_type="text/csv")
+    if some_file_path:
+        return FileResponse(some_file_path, filename=some_file_path, media_type="text/csv")
+    else:
+        raise HTTPException(status_code=404, detail="File not found!")
