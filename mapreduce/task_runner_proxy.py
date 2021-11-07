@@ -70,20 +70,20 @@ async def get_file(file_id, ip=None):
 
         logger.info(f"File id: {file_id}; file_name = {file_name}")
 
-        for data_node_ip in data_nodes:
-            async with session.request(url=f"http://{data_node_ip}/command/get_file",  # noqa
-                                       json={'file_id': file_id,
-                                             'file_name': file_name},
-                                       method="GET") as resp:
-                res = await resp.read()
-                logger.info(f"result from get file: {res}")
-                if res:
-                    df = pd.read_csv(io.StringIO(res.decode('utf-8')))
+        if file_name:
+            for data_node_ip in data_nodes:
+                async with session.request(url=f"http://{data_node_ip}/command/get_file",  # noqa
+                                           json={'file_id': file_id,
+                                                 'file_name': file_name},
+                                           method="GET") as resp:
+                    res = await resp.read()
+                    logger.info(f"result from get file: {res}")
+                    if res:
+                        df = pd.read_csv(io.StringIO(res.decode('utf-8')))
 
-                    df.to_csv(file_name, header=header, mode=mode, index=False)
-                    header = False
-                    mode = "a"
-
+                        df.to_csv(file_name, header=header, mode=mode, index=False)
+                        header = False
+                        mode = "a"
     return file_name
 
 
@@ -140,56 +140,57 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
         data_nodes_list = cycle(data_nodes_list)
         row_limit = response.get("distribution")
         file_id = response.get("file_id")
+        try:
+            file_name, file_ext = os.path.splitext(uploaded_file.filename)
+            logger.info("getting file content")
 
-        file_name, file_ext = os.path.splitext(uploaded_file.filename)
-        logger.info("getting file content")
+            num_of_workers = get_num_of_workers(file_obj, row_limit)
 
-        num_of_workers = get_num_of_workers(file_obj, row_limit)
+            headers = next(file_obj, None)
 
-        headers = next(file_obj, None)
+            if headers:
+                headers = headers.decode("utf-8")
+                file_len -= 1
 
-        if headers:
-            headers = headers.decode("utf-8")
-            file_len -= 1
+            mySemaphore = asyncio.Semaphore(num_of_workers)
 
-        mySemaphore = asyncio.Semaphore(num_of_workers)
+            async def push_chunk_on_cluster(ip):
 
-        async def push_chunk_on_cluster(ip):
+                await mySemaphore.acquire()
+                logger.info(f"Acquired {ip=}")
+                ip = f"http://{ip}"  # noqa
+                chunk = next(read_file_by_chunks(file_obj, row_limit), None)
+                logger.info(f"{chunk=}")
+                if chunk:
+                    async with ClientSession() as new_session:
+                        chunk_name = f"{uuid.uuid4()}{file_ext}"
+                        logger.info("before write")
+                        await write(new_session,
+                                    file_id,
+                                    chunk_name,
+                                    {"headers": headers, "items": json.dumps(chunk)},
+                                    ip)
+                        logger.info("after write")
+                        logger.info("before refresh table")
+                        await refresh_table(new_session, file_id, ip, chunk_name)
+                        logger.info("after refresh table")
+                mySemaphore.release()
+                logger.info("Released")
 
-            await mySemaphore.acquire()
-            logger.info(f"Acquired {ip=}")
-            ip = f"http://{ip}"  # noqa
-            chunk = next(read_file_by_chunks(file_obj, row_limit), None)
-            logger.info(f"{chunk=}")
-            if chunk:
-                async with ClientSession() as new_session:
-                    chunk_name = f"{uuid.uuid4()}{file_ext}"
-                    logger.info("before write")
-                    await write(new_session,
-                                file_id,
-                                chunk_name,
-                                {"headers": headers, "items": json.dumps(chunk)},
-                                ip)
-                    logger.info("after write")
-                    logger.info("before refresh table")
-                    await refresh_table(new_session, file_id, ip, chunk_name)
-                    logger.info("after refresh table")
-            mySemaphore.release()
-            logger.info("Released")
+            tasks = []
+            num_iterations = file_len // row_limit
+            if file_len // row_limit != file_len / row_limit:
+                num_iterations += 1
 
-        tasks = []
-        num_iterations = file_len // row_limit
-        if file_len // row_limit != file_len / row_limit:
-            num_iterations += 1
+            logger.info(f"{file_len=}, {row_limit=}, {num_iterations=}")
+            for i in range(num_iterations):
+                logger.info(f"group: {i}")
+                tasks.append(asyncio.ensure_future(push_chunk_on_cluster(next(data_nodes_list, None))))
 
-        logger.info(f"{file_len=}, {row_limit=}, {num_iterations=}")
-        for i in range(num_iterations):
-            logger.info(f"group: {i}")
-            tasks.append(asyncio.ensure_future(push_chunk_on_cluster(next(data_nodes_list, None))))
-
-        await asyncio.gather(*tasks)
-
-    return file_id
+            await asyncio.gather(*tasks)
+        except Exception as e:
+            clear_data(file_id, True)
+        return file_id
 
 
 def move_file_to_init_folder(file_name):
