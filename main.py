@@ -33,8 +33,8 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
         #     task.create_config_and_filesystem(file.filename)
         #     task.move_file_to_init_folder(file.filename)
 
-        file_id = await task.push_file_on_cluster(file)
-        files_info[file.filename] = file_id
+        file_id = await push_file_on_cluster(file)
+        files_info[file.filename] = file_id["file_id"]
 
     logger.info("File(s) uploaded, starting map_reduce phase")
     task.run_tasks(sql, files_info)
