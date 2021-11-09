@@ -65,7 +65,6 @@ class GetDataNodesListCommand(BaseCommand):
         pass
 
     async def send_command_async(self, **kwargs):
-        logger.info("Get data nodes list")
         self.validate()
         return await super().send_command_async(self.session, command_name='get-data-nodes-list', method="GET")
 

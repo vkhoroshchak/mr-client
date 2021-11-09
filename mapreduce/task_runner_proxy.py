@@ -119,7 +119,7 @@ def read_file_by_chunks(file_obj, chunk_size: int):
     chunk = []
     counter = 0
     for piece in file_obj:
-        logger.info(f"{counter=}, {chunk_size=}, {piece.decode('utf-8')=}")
+        logger.info(f"{counter=}, {chunk_size=}")
         counter += 1
         chunk.append(piece.decode("utf-8"))
         if counter == chunk_size:
@@ -142,7 +142,6 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
         file_id = response.get("file_id")
         try:
             file_name, file_ext = os.path.splitext(uploaded_file.filename)
-            logger.info("getting file content")
 
             num_of_workers = get_num_of_workers(file_obj, row_limit)
 
@@ -160,7 +159,6 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
                 logger.info(f"Acquired {ip=}")
                 ip = f"http://{ip}"  # noqa
                 chunk = next(read_file_by_chunks(file_obj, row_limit), None)
-                logger.info(f"{chunk=}")
                 if chunk:
                     async with ClientSession() as new_session:
                         chunk_name = f"{uuid.uuid4()}{file_ext}"
@@ -170,10 +168,7 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
                                     chunk_name,
                                     {"headers": headers, "items": json.dumps(chunk)},
                                     ip)
-                        logger.info("after write")
-                        logger.info("before refresh table")
                         await refresh_table(new_session, file_id, ip, chunk_name)
-                        logger.info("after refresh table")
                 mySemaphore.release()
                 logger.info("Released")
 
