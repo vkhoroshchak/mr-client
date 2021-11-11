@@ -9,16 +9,16 @@ services:
     networks:
       - mr_network
     environment:
-      - DATABASE_URL = ${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - mongodb
   mongodb:
     image: mongo
     restart: always
     environment:
-      - MONGO_INITDB_ROOT_USERNAME = ${MONGO_ROOT_USER}
-      - MONGO_INITDB_ROOT_PASSWORD = ${MONGO_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE = ${MONGO_DB}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DB}
     ports:
       - 27017:27017
     volumes:

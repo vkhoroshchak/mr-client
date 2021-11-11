@@ -19,12 +19,12 @@ async def get_report_history(user: User = Depends(current_active_user)):
     return await ReportHistoryManager().retrieve_records()
 
 
-@router.get("/{report_id}", response_model=ReportRecord)
+@router.get("/{report_id}")
 async def get_record(report_id: str, user: User = Depends(current_active_user)):
     return await ReportHistoryManager().get_record(report_id)
 
 
-@router.post("/", response_model=ReportRecord)
+@router.post("/")
 async def create_record(record: CreateReportRecord, user: User = Depends(current_active_user)):
     record.user_id = user.id
     return await ReportHistoryManager().create_record(record)
