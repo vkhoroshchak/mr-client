@@ -88,7 +88,7 @@ async def get_file(file_id, ip=None):
                             mode = "a"
         return file_name
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -108,7 +108,7 @@ def get_file_props(file):
 
         return i, hash_md5.hexdigest()
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -124,7 +124,7 @@ def get_num_of_workers(file_obj, chunk_size):
         logger.info(f"Num of workers: {num_of_workers}")
         return num_of_workers
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -142,7 +142,7 @@ def read_file_by_chunks(file_obj, chunk_size: int):
                 counter = 0
         yield chunk
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -205,7 +205,7 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
                 clear_data(file_id, True)
             return file_id
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -221,7 +221,7 @@ async def check_if_file_is_on_cluster(uploaded_file: UploadFile):
             resp = await commands.CheckIfFileIsOnCLuster(session, uploaded_file.filename, md5_hash).send_command_async()
         return resp
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -283,5 +283,5 @@ def run_tasks(sql, files_info):
             )
             return from_file
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()

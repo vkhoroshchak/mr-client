@@ -43,7 +43,7 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
         print(end - start)
         return {"files_info": files_info}
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -53,7 +53,7 @@ async def remove_file_from_cluster(file_id: str, clear_all: bool):
         task.clear_data(file_id, clear_all)
         return JSONResponse("The file was successfully removed from the cluster!")
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -69,7 +69,7 @@ async def push_file_on_cluster(file: UploadFile = File(...)):
             file_id = await task.push_file_on_cluster(file)
         return {"file_id": file_id}
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -83,5 +83,5 @@ async def get_file_from_cluster(file_id: str):
         else:
             raise HTTPException(status_code=404, detail="File not found!")
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()

@@ -20,7 +20,7 @@ class SQLParser:
             res['aggregate_f_name'] = name
             return res
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -46,7 +46,7 @@ class SQLParser:
             else:
                 return sql_from
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -67,7 +67,7 @@ class SQLParser:
             }
             return res
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -87,7 +87,7 @@ class SQLParser:
                     res.append(SQLParser.process_dict_item(select_data))
             return res
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -113,7 +113,7 @@ class SQLParser:
 
             return res
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -146,7 +146,7 @@ class SQLParser:
 
             return item_dict
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -171,7 +171,7 @@ class SQLParser:
                 res.append(item_dict)
             return res
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -249,7 +249,7 @@ class SQLParser:
                     raise ValueError("SQL operator not parser properly!")
                 return res
             except Exception as e:
-                logger.info("Caught exception!" + e)
+                logger.info("Caught exception!" + str(e))
                 traceback.print_exc()
 
         try:
@@ -272,7 +272,7 @@ class SQLParser:
 
             return res
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -286,7 +286,7 @@ class SQLParser:
                     sort_asc = False
             return col, sort_asc
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -318,7 +318,7 @@ class SQLParser:
                     res['from'] = SQLParser.from_parser(json_res['from'])
             return res
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -343,7 +343,7 @@ class SQLParser:
                 else:
                     return col['value']
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
 
@@ -366,7 +366,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
                 comm = f"data_frame.{results['left'].title()} {results['operator']} {results['right']}"
             return comm
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     def parse_from(from_file):
@@ -397,7 +397,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
         data_frame = dd.read_parquet(file_name, sep='{field_delimiter}')
         """
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     def parse_where(parsed_where):
@@ -418,7 +418,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
             else:
                 return ""
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     def parse_groupby(parsed_groupby, select_cols):
@@ -439,7 +439,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
             else:
                 return ""
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     def parse_select(select_cols):
@@ -453,7 +453,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
         data_frame = data_frame[{select_cols}]
         """
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     def parse_orderby(parsed_orderby):
@@ -466,7 +466,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
             else:
                 return ""
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     try:
@@ -491,7 +491,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
 
         return res
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
 
 
@@ -525,5 +525,5 @@ def custom_mapper(key_column, col_names, field_delimiter):
         return data_frame
     """
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()
