@@ -28,7 +28,7 @@ class BaseCommand(object):
                 return await base_http_client.send_request(session, self.command_body, command_name, ip, method)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     def send_command(self, command_name, ip=None):
         try:
@@ -38,7 +38,7 @@ class BaseCommand(object):
                 return base_http_client.post(self.command_body, command_name, ip)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class CheckIfFileIsOnCLuster(BaseCommand):
@@ -61,7 +61,7 @@ class CheckIfFileIsOnCLuster(BaseCommand):
             return super().send_command(command_name='check_if_file_is_on_cluster')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     async def send_command_async(self, **kwargs):
         try:
@@ -69,7 +69,7 @@ class CheckIfFileIsOnCLuster(BaseCommand):
             return await super().send_command_async(self.session, command_name='check_if_file_is_on_cluster', method="GET")
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class GetDataNodesListCommand(BaseCommand):
@@ -86,7 +86,7 @@ class GetDataNodesListCommand(BaseCommand):
             return await super().send_command_async(self.session, command_name='get-data-nodes-list', method="GET")
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class ClearDataCommand(BaseCommand):
@@ -108,7 +108,7 @@ class ClearDataCommand(BaseCommand):
             return super().send_command(command_name='clear_data')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class CreateConfigAndFilesystem(BaseCommand):
@@ -128,7 +128,7 @@ class CreateConfigAndFilesystem(BaseCommand):
             return await super().send_command_async(session=self.session, command_name='create_config_and_filesystem')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     def send_command(self, **kwargs):
         try:
@@ -136,7 +136,7 @@ class CreateConfigAndFilesystem(BaseCommand):
             return super().send_command(command_name='create_config_and_filesystem')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class GetFileCommand(BaseCommand):
@@ -155,7 +155,7 @@ class GetFileCommand(BaseCommand):
             return await super().send_command_async(command_name='get_file', ip=ip, method="GET", session=self.session)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class GetFileNameCommand(BaseCommand):
@@ -174,7 +174,7 @@ class GetFileNameCommand(BaseCommand):
                                                     session=self.session)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class GetFileFromClusterCommand(BaseCommand):
@@ -198,7 +198,7 @@ class GetFileFromClusterCommand(BaseCommand):
             return super().send_command(command_name='get_file_from_cluster')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class GetResultOfKeyCommand(BaseCommand):
@@ -228,7 +228,7 @@ class GetResultOfKeyCommand(BaseCommand):
             return super().send_command(ip)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class MapCommand(BaseCommand):
@@ -262,7 +262,7 @@ class MapCommand(BaseCommand):
             return super().send_command(command_name='map')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class ReduceCommand(BaseCommand):
@@ -298,7 +298,7 @@ class ReduceCommand(BaseCommand):
             return super(ReduceCommand, self).send_command(command_name='reduce')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class MoveFileToInitFolderCommand(BaseCommand):
@@ -314,7 +314,7 @@ class MoveFileToInitFolderCommand(BaseCommand):
             return super().send_command(command_name='move_file_to_init_folder')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class RefreshTableCommand(BaseCommand):
@@ -343,7 +343,7 @@ class RefreshTableCommand(BaseCommand):
             return await super().send_command_async(self.session, 'refresh_table')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class ShuffleCommand(BaseCommand):
@@ -364,7 +364,7 @@ class ShuffleCommand(BaseCommand):
             return super().send_command(command_name='shuffle')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 class WriteCommand(BaseCommand):
@@ -398,4 +398,4 @@ class WriteCommand(BaseCommand):
                                                     ip=self.command_body['data_node_ip'])
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)

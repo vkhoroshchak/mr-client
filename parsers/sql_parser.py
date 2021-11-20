@@ -21,7 +21,7 @@ class SQLParser:
             return res
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def from_parser(sql_from):
@@ -47,7 +47,7 @@ class SQLParser:
                 return sql_from
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def join_parser(data):
@@ -68,7 +68,7 @@ class SQLParser:
             return res
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def select_parser(select_data):
@@ -88,7 +88,7 @@ class SQLParser:
             return res
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def split_select_cols(file_name, parsed_select):
@@ -114,7 +114,7 @@ class SQLParser:
             return res
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def process_dict_item(diction):
@@ -147,7 +147,7 @@ class SQLParser:
             return item_dict
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def group_by_parser(sql_group_by):
@@ -172,7 +172,7 @@ class SQLParser:
             return res
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def where_parser(sql_where):  # noqa: C901
@@ -250,7 +250,7 @@ class SQLParser:
                 return res
             except Exception as e:
                 logger.info("Caught exception!" + str(e))
-                traceback.print_exc()
+                logger.error(e, exc_info=True)
 
         try:
             res = {}
@@ -273,7 +273,7 @@ class SQLParser:
             return res
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def orderby_parser(sql_orderby):
@@ -287,7 +287,7 @@ class SQLParser:
             return col, sort_asc
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def sql_parser(sql_query):
@@ -319,7 +319,7 @@ class SQLParser:
             return res
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def get_key_col(parsed_sql, file_name=None):
@@ -344,7 +344,7 @@ class SQLParser:
                     return col['value']
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
 
 def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
@@ -367,7 +367,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
             return comm
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     def parse_from(from_file):
         try:
@@ -376,29 +376,29 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
                 left_df_col_name = parsed_join['on'][0].split('.')[1]
                 right_df_col_name = parsed_join['on'][1].split('.')[1]
                 return f"""
-        l_file_name, r_file_name = file_name
-        # left_df = dd.read_csv(l_file_name)
-        # right_df = dd.read_csv(r_file_name)
-        left_df = dd.read_parquet(l_file_name)
-        right_df = dd.read_parquet(r_file_name)
-        left_df = left_df.drop(columns=['key_column'])
-        right_df = right_df.drop(columns=['key_column'])
-        left_df_col_name = '{left_df_col_name}'
-        right_df_col_name = '{right_df_col_name}'
-        data_frame = dd.merge(left=left_df,
-                              how='{parsed_join['join_type']}',
-                              right=right_df,
-                              left_on=left_df_col_name,
-                              right_on=right_df_col_name)
+    l_file_name, r_file_name = file_name
+    # left_df = dd.read_csv(l_file_name)
+    # right_df = dd.read_csv(r_file_name)
+    left_df = dd.read_parquet(l_file_name)
+    right_df = dd.read_parquet(r_file_name)
+    left_df = left_df.drop(columns=['key_column'])
+    right_df = right_df.drop(columns=['key_column'])
+    left_df_col_name = '{left_df_col_name}'
+    right_df_col_name = '{right_df_col_name}'
+    data_frame = dd.merge(left=left_df,
+                          how='{parsed_join['join_type']}',
+                          right=right_df,
+                          left_on=left_df_col_name,
+                          right_on=right_df_col_name)
         """
             else:
                 return f"""
-        # data_frame = dd.read_csv(file_name, sep='{field_delimiter}')
-        data_frame = dd.read_parquet(file_name, sep='{field_delimiter}')
+    # data_frame = dd.read_csv(file_name, sep='{field_delimiter}')
+    data_frame = dd.read_parquet(file_name, sep='{field_delimiter}')
         """
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     def parse_where(parsed_where):
         try:
@@ -413,66 +413,66 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
                         commands.append(where_dict_to_command(d))
                     command = main_oper.join([f"({x})" for x in commands])
                 return f"""
-        data_frame = data_frame[{command}]
+    data_frame = data_frame[{command}]
         """
             else:
                 return ""
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     def parse_groupby(parsed_groupby, select_cols):
         try:
             if parsed_groupby:
                 groupby_col = parsed_groupby[0]
                 return f"""
-        for i in {select_cols}:
-            if 'aggregate_f_name' in i.keys():
-                if {groupby_col}['key_name']:
-                    data_frame[i['new_name']] = data_frame.groupby({groupby_col}['key_name'])[i['new_name']].transform(
-                        i['aggregate_f_name'])
-                else:
-                    data_frame[i['new_name']] = data_frame.groupby(i['new_name'])[i['new_name']].transform(
-                        i['aggregate_f_name'])
-        data_frame = data_frame.drop_duplicates({groupby_col}['key_name'])
+    for i in {select_cols}:
+        if 'aggregate_f_name' in i.keys():
+            if {groupby_col}['key_name']:
+                data_frame[i['new_name']] = data_frame.groupby({groupby_col}['key_name'])[i['new_name']].transform(
+                    i['aggregate_f_name'])
+            else:
+                data_frame[i['new_name']] = data_frame.groupby(i['new_name'])[i['new_name']].transform(
+                    i['aggregate_f_name'])
+    data_frame = data_frame.drop_duplicates({groupby_col}['key_name'])
         """
             else:
                 return ""
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     def parse_select(select_cols):
         try:
             if select_cols == ["*"]:
                 return """
-        data_frame = data_frame.drop(columns='key_column')
+    data_frame = data_frame.drop(columns='key_column')
         """
             else:
                 return f"""
-        data_frame = data_frame[{select_cols}]
+    data_frame = data_frame[{select_cols}]
         """
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     def parse_orderby(parsed_orderby):
         try:
             if parsed_orderby:
                 col, asc = parsed_orderby
                 return f"""
-        data_frame = data_frame.sort_values(by='{col}', ascending={asc})
+    data_frame = data_frame.sort_values(by='{col}', ascending={asc})
         """
             else:
                 return ""
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     try:
         res = """
-    def custom_reducer(file_name, dest):
-        import dask.dataframe as dd
+def custom_reducer(file_name, dest):
+    import dask.dataframe as dd
         """
 
         res += parse_from(parsed_sql.get("from"))
@@ -486,44 +486,44 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
         res += parse_orderby(parsed_sql.get("orderby"))
 
         res += f"""
-        data_frame.to_csv(dest, index=False, sep='{field_delimiter}')
+    data_frame.to_csv(dest, index=False, sep='{field_delimiter}')
         """
 
         return res
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 def custom_mapper(key_column, col_names, field_delimiter):
     try:
         return f"""
-    def custom_mapper(file_name):
-        import dask.dataframe as dd
-    
-        def update_col_names():
-            df_col_names = list(data_frame)
-            if {col_names}[0]['old_name'] == '*':
-                res = data_frame.copy()
-                return res
-    
-            for i in range(len({col_names})):
-                for j in range(len(df_col_names)):
-                    if df_col_names[j] == {col_names}[i]['old_name']:
-                        df_col_names[j] = {col_names}[i]['new_name']
-    
+def custom_mapper(file_name):
+    import dask.dataframe as dd
+
+    def update_col_names():
+        df_col_names = list(data_frame)
+        if {col_names}[0]['old_name'] == '*':
             res = data_frame.copy()
-            res.columns = df_col_names
             return res
-    
-        data_frame = dd.read_csv(file_name, sep='{field_delimiter}')
-    
-        data_frame = update_col_names()
-    
-        data_frame['key_column'] = data_frame['{key_column}'] if '{key_column}' != '*' else data_frame[data_frame.columns[0]]
-    
-        return data_frame
+
+        for i in range(len({col_names})):
+            for j in range(len(df_col_names)):
+                if df_col_names[j] == {col_names}[i]['old_name']:
+                    df_col_names[j] = {col_names}[i]['new_name']
+
+        res = data_frame.copy()
+        res.columns = df_col_names
+        return res
+
+    data_frame = dd.read_csv(file_name, sep='{field_delimiter}')
+
+    data_frame = update_col_names()
+
+    data_frame['key_column'] = data_frame['{key_column}'] if '{key_column}' != '*' else data_frame[data_frame.columns[0]]
+
+    return data_frame
     """
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)

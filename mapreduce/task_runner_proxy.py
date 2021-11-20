@@ -89,7 +89,7 @@ async def get_file(file_id, ip=None):
         return file_name
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 def clear_data(file_id: str, clear_all: bool):
@@ -109,7 +109,7 @@ def get_file_props(file):
         return i, hash_md5.hexdigest()
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 def get_num_of_workers(file_obj, chunk_size):
@@ -125,7 +125,7 @@ def get_num_of_workers(file_obj, chunk_size):
         return num_of_workers
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 def read_file_by_chunks(file_obj, chunk_size: int):
@@ -133,7 +133,7 @@ def read_file_by_chunks(file_obj, chunk_size: int):
         chunk = []
         counter = 0
         for piece in file_obj:
-            logger.info(f"{counter=}, {chunk_size=}")
+            # logger.info(f"{counter=}, {chunk_size=}")
             counter += 1
             chunk.append(piece.decode("utf-8"))
             if counter == chunk_size:
@@ -143,7 +143,7 @@ def read_file_by_chunks(file_obj, chunk_size: int):
         yield chunk
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 async def push_file_on_cluster(uploaded_file: UploadFile):
@@ -206,7 +206,7 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
             return file_id
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 def move_file_to_init_folder(file_name):
@@ -222,7 +222,7 @@ async def check_if_file_is_on_cluster(uploaded_file: UploadFile):
         return resp
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 def run_tasks(sql, files_info):
@@ -284,4 +284,4 @@ def run_tasks(sql, files_info):
             return from_file
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
