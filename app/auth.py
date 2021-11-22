@@ -22,7 +22,7 @@ router = APIRouter()
 
 
 @router.get("/signup/")
-def signup(request: Request):
+async def register(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
 
 

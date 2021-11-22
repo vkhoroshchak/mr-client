@@ -4,14 +4,14 @@ import io
 import json
 import math
 import os
+import sys
+import uuid
+from itertools import cycle
+
 import pandas as pd
 import psutil
-import sys
-import traceback
-import uuid
 from aiohttp import ClientSession
 from fastapi import UploadFile
-from itertools import cycle
 
 import parsers.sql_parser as sql_parser
 from config.config_provider import ConfigProvider
@@ -201,7 +201,7 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
                     tasks.append(asyncio.ensure_future(push_chunk_on_cluster(next(data_nodes_list, None))))
 
                 await asyncio.gather(*tasks)
-            except Exception as e:
+            except Exception:
                 clear_data(file_id, True)
             return file_id
     except Exception as e:
