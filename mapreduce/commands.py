@@ -1,6 +1,6 @@
 import base64
 import os
-
+import traceback
 from fastapi import status, HTTPException
 
 from config.config_provider import ConfigProvider
@@ -21,16 +21,24 @@ class BaseCommand(object):
         raise NotImplementedError()
 
     async def send_command_async(self, session, command_name, ip=None, method="POST"):
-        if not ip:
-            return await base_http_client.send_request(session, self.command_body, command_name, method=method)
-        else:
-            return await base_http_client.send_request(session, self.command_body, command_name, ip, method)
+        try:
+            if not ip:
+                return await base_http_client.send_request(session, self.command_body, command_name, method=method)
+            else:
+                return await base_http_client.send_request(session, self.command_body, command_name, ip, method)
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
     def send_command(self, command_name, ip=None):
-        if not ip:
-            return base_http_client.post(self.command_body, command_name)
-        else:
-            return base_http_client.post(self.command_body, command_name, ip)
+        try:
+            if not ip:
+                return base_http_client.post(self.command_body, command_name)
+            else:
+                return base_http_client.post(self.command_body, command_name, ip)
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class CheckIfFileIsOnCLuster(BaseCommand):
@@ -48,12 +56,20 @@ class CheckIfFileIsOnCLuster(BaseCommand):
                                 detail='md5_hash is not specified!')
 
     def send_command(self, **kwargs):
-        self.validate()
-        return super().send_command(command_name='check_if_file_is_on_cluster')
+        try:
+            self.validate()
+            return super().send_command(command_name='check_if_file_is_on_cluster')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
     async def send_command_async(self, **kwargs):
-        self.validate()
-        return await super().send_command_async(self.session, command_name='check_if_file_is_on_cluster', method="GET")
+        try:
+            self.validate()
+            return await super().send_command_async(self.session, command_name='check_if_file_is_on_cluster', method="GET")
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class GetDataNodesListCommand(BaseCommand):
@@ -65,9 +81,12 @@ class GetDataNodesListCommand(BaseCommand):
         pass
 
     async def send_command_async(self, **kwargs):
-        logger.info("Get data nodes list")
-        self.validate()
-        return await super().send_command_async(self.session, command_name='get-data-nodes-list', method="GET")
+        try:
+            self.validate()
+            return await super().send_command_async(self.session, command_name='get-data-nodes-list', method="GET")
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class ClearDataCommand(BaseCommand):
@@ -84,8 +103,12 @@ class ClearDataCommand(BaseCommand):
                                 detail='File id is not specified!')
 
     def send_command(self, **kwargs):
-        self.validate()
-        return super().send_command(command_name='clear_data')
+        try:
+            self.validate()
+            return super().send_command(command_name='clear_data')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class CreateConfigAndFilesystem(BaseCommand):
@@ -100,12 +123,20 @@ class CreateConfigAndFilesystem(BaseCommand):
                                 detail='File name is not specified!')
 
     async def send_command_async(self, **kwargs):
-        self.validate()
-        return await super().send_command_async(session=self.session, command_name='create_config_and_filesystem')
+        try:
+            self.validate()
+            return await super().send_command_async(session=self.session, command_name='create_config_and_filesystem')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
     def send_command(self, **kwargs):
-        self.validate()
-        return super().send_command(command_name='create_config_and_filesystem')
+        try:
+            self.validate()
+            return super().send_command(command_name='create_config_and_filesystem')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class GetFileCommand(BaseCommand):
@@ -119,8 +150,12 @@ class GetFileCommand(BaseCommand):
         pass
 
     async def send_command(self, ip=None, **kwargs):
-        self.validate()
-        return await super().send_command_async(command_name='get_file', ip=ip, method="GET", session=self.session)
+        try:
+            self.validate()
+            return await super().send_command_async(command_name='get_file', ip=ip, method="GET", session=self.session)
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class GetFileNameCommand(BaseCommand):
@@ -133,8 +168,13 @@ class GetFileNameCommand(BaseCommand):
         pass
 
     async def send_command(self, ip=None, **kwargs):
-        self.validate()
-        return await super().send_command_async(command_name='get_file_name', ip=ip, method="GET", session=self.session)
+        try:
+            self.validate()
+            return await super().send_command_async(command_name='get_file_name', ip=ip, method="GET",
+                                                    session=self.session)
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class GetFileFromClusterCommand(BaseCommand):
@@ -153,8 +193,12 @@ class GetFileFromClusterCommand(BaseCommand):
                                 detail='Dest file name is not specified!')
 
     def send_command(self, **kwargs):
-        self.validate()
-        return super().send_command(command_name='get_file_from_cluster')
+        try:
+            self.validate()
+            return super().send_command(command_name='get_file_from_cluster')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class GetResultOfKeyCommand(BaseCommand):
@@ -179,9 +223,12 @@ class GetResultOfKeyCommand(BaseCommand):
                                 detail='Field delimiter is not specified!')
 
     def send_command(self, ip=None, **kwargs):
-        self.validate()
-
-        return super().send_command(ip)
+        try:
+            self.validate()
+            return super().send_command(ip)
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class MapCommand(BaseCommand):
@@ -210,8 +257,12 @@ class MapCommand(BaseCommand):
                                 detail='Mapper is empty!')
 
     def send_command(self, **kwargs):
-        self.validate()
-        return super().send_command(command_name='map')
+        try:
+            self.validate()
+            return super().send_command(command_name='map')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class ReduceCommand(BaseCommand):
@@ -242,8 +293,12 @@ class ReduceCommand(BaseCommand):
                                 detail='Reducer is empty!')
 
     def send_command(self, **kwargs):
-        self.validate()
-        return super(ReduceCommand, self).send_command(command_name='reduce')
+        try:
+            self.validate()
+            return super(ReduceCommand, self).send_command(command_name='reduce')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class MoveFileToInitFolderCommand(BaseCommand):
@@ -255,7 +310,11 @@ class MoveFileToInitFolderCommand(BaseCommand):
         pass
 
     def send_command(self, **kwargs):
-        return super().send_command(command_name='move_file_to_init_folder')
+        try:
+            return super().send_command(command_name='move_file_to_init_folder')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class RefreshTableCommand(BaseCommand):
@@ -278,9 +337,13 @@ class RefreshTableCommand(BaseCommand):
                                 detail='Segment name is not specified!')
 
     async def send_command_async(self, **kwargs):
-        self.validate()
-        logger.info(f"Refresh table {self.command_body}")
-        return await super().send_command_async(self.session, 'refresh_table')
+        try:
+            self.validate()
+            logger.info(f"Refresh table {self.command_body}")
+            return await super().send_command_async(self.session, 'refresh_table')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class ShuffleCommand(BaseCommand):
@@ -296,8 +359,12 @@ class ShuffleCommand(BaseCommand):
         pass
 
     def send_command(self, **kwargs):
-        self.validate()
-        return super().send_command(command_name='shuffle')
+        try:
+            self.validate()
+            return super().send_command(command_name='shuffle')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
 
 class WriteCommand(BaseCommand):
@@ -325,6 +392,10 @@ class WriteCommand(BaseCommand):
                                 detail='Data node ip is not specified!')
 
     async def send_command_async(self, **kwargs):
-        self.validate()
-        return await super().send_command_async(self.session, command_name='write',
-                                                ip=self.command_body['data_node_ip'])
+        try:
+            self.validate()
+            return await super().send_command_async(self.session, command_name='write',
+                                                    ip=self.command_body['data_node_ip'])
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
