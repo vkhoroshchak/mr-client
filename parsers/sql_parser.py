@@ -1,7 +1,7 @@
 import json
-import moz_sql_parser as msp
 import os
-import traceback
+
+import moz_sql_parser as msp
 
 from config.logger import client_logger
 
