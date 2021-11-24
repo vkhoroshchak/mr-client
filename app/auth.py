@@ -36,9 +36,7 @@ async def signup(request: Request,
         try:
             user = models.BaseUserCreate(email=form.username, password=form.password)
             await user_manager.create(user, safe=True, request=request)
-        except UserAlreadyExists:
-            return templates.TemplateResponse("signup.html", form.__dict__)
-        except InvalidPasswordException:
+        except (UserAlreadyExists, InvalidPasswordException):
             return templates.TemplateResponse("signup.html", form.__dict__)
         else:
             return RedirectResponse(url="/report_history", status_code=status.HTTP_302_FOUND)

@@ -1,11 +1,9 @@
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import Request
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 
 from app.db import ReportHistoryManager
 from app.models import User, ReportRecord, CreateReportRecord
@@ -34,7 +32,7 @@ async def get_report_history(request: Request, user: User = Depends(optional_cur
         )
     else:
         logger.info("Unauthorized user, redirecting to sign in page")
-        return RedirectResponse(url="/auth/signin", status_code=302)
+        return RedirectResponse(url="/auth/signin", status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 @router.get("/{report_id}", response_model=ReportRecord)

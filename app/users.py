@@ -3,8 +3,7 @@ from typing import List
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import Depends, Request, APIRouter
-from fastapi import Response
+from fastapi import Depends, Request, APIRouter, Response, status
 from fastapi_users import BaseUserManager, FastAPIUsers
 from fastapi_users.authentication import CookieAuthentication
 from fastapi_users.db import MongoDBUserDatabase
@@ -58,9 +57,7 @@ class RegisterForm:
 
     async def load_data(self):
         form = await self.request.form()
-        self.username = form.get(
-            "username"
-        )
+        self.username = form.get("username")
         self.password = form.get("password")
         self.confirm_password = form.get("confirmpassword")
 
@@ -79,12 +76,12 @@ class RegisterForm:
 class RedirectCookieAuthentication(CookieAuthentication):
     async def get_login_response(self, user: UserDB, response: Response):
         await super().get_login_response(user, response)
-        response.status_code = 303
+        response.status_code = status.HTTP_303_SEE_OTHER
         response.headers["Location"] = "/report_history"
 
     async def get_logout_response(self, user: UserDB, response: Response):
         await super().get_logout_response(user, response)
-        response.status_code = 303
+        response.status_code = status.HTTP_303_SEE_OTHER
         response.headers["Location"] = "/auth/signin"
 
 
