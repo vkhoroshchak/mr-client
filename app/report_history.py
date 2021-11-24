@@ -32,7 +32,7 @@ async def get_report_history(request: Request, user: User = Depends(optional_cur
         )
     else:
         logger.info("Unauthorized user, redirecting to sign in page")
-        return RedirectResponse(url="/auth/signin", status_code=status.HTTP_401_UNAUTHORIZED)
+        return RedirectResponse(url="/auth/signin", status_code=status.HTTP_302_FOUND)
 
 
 @router.get("/{report_id}", response_model=ReportRecord)
