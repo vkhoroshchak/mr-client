@@ -1,17 +1,19 @@
 import asyncio
+import codecs
+import csv
 import hashlib
 import io
 import json
 import math
 import os
-import sys
-import uuid
-from itertools import cycle
-
 import pandas as pd
 import psutil
+import shutil
+import sys
+import uuid
 from aiohttp import ClientSession
 from fastapi import UploadFile
+from itertools import cycle
 
 import parsers.sql_parser as sql_parser
 from config.config_provider import ConfigProvider
@@ -104,15 +106,29 @@ def clear_data(file_id: str, clear_all: bool):
     return commands.ClearDataCommand(file_id, clear_all).send_command()
 
 
-def get_file_props(file):
+def get_file_props(uploaded_file):
     try:
-        content = file.read()
-        hash_md5 = hashlib.md5()
-        hash_md5.update(content)
-        file.seek(0)
-
-        i = len(file.readlines())
-        file.seek(0)
+        # content = file.read()
+        # hash_md5 = hashlib.md5()
+        # hash_md5.update(content)
+        # file.seek(0)
+        #
+        # i = len(file.readlines())
+        # file.seek(0)
+        with open(uploaded_file, 'rU') as file_obj:
+            csv_reader = csv.reader(file_obj, dialect=csv.excel_tab)
+        # csv_reader = csv.reader(codecs.iterdecode(file, 'utf-8'), dialect=csv.excel_tab)
+            content = ''
+            i = 0
+            for row in csv_reader:
+                content += ','.join(row)
+                i += 1
+            hash_md5 = hashlib.md5()
+            hash_md5.update(content.encode('utf-8'))
+            logger.info(f"{i=}, {hash_md5.hexdigest()=}")
+        # if i == 1:
+        #     i = len(content)
+        # logger.info(f"{len(content)=}, {hash_md5.hexdigest()=}, {i=}")
 
         return i, hash_md5.hexdigest()
     except Exception as e:
@@ -120,15 +136,15 @@ def get_file_props(file):
         logger.error(e, exc_info=True)
 
 
-def get_num_of_workers(file_obj, chunk_size):
+def get_num_of_workers(uploaded_file, chunk_size):
     try:
-        chunk_size = sys.getsizeof(json.dumps(next(read_file_by_chunks(file_obj, chunk_size))))
+        chunk_size = sys.getsizeof(json.dumps(next(read_file_by_chunks(uploaded_file, chunk_size))))
         free_ram = psutil.virtual_memory().free
         logger.info(f"Free RAM in MB: {free_ram / 1000000}")
         logger.info(f"Chunk size in MB: {chunk_size / 1000000}")
 
         num_of_workers = math.floor(free_ram / chunk_size * 0.2)
-        file_obj.seek(0)
+        # file_obj.seek(0)
         logger.info(f"Num of workers: {num_of_workers}")
         return num_of_workers
     except Exception as e:
@@ -136,14 +152,17 @@ def get_num_of_workers(file_obj, chunk_size):
         logger.error(e, exc_info=True)
 
 
-def read_file_by_chunks(file_obj, chunk_size: int):
+def read_file_by_chunks(uploaded_file, chunk_size: int):
     try:
         chunk = []
         counter = 0
-        for piece in file_obj:
-            # logger.info(f"{counter=}, {chunk_size=}")
+        logger.info("read_file_by_chunks")
+        # for piece in open(uploaded_file):
+        for piece in uploaded_file:
+            logger.info(f"{counter=}, {chunk_size=}")
             counter += 1
-            chunk.append(piece.decode("utf-8"))
+            # chunk.append(piece.decode("utf-8"))
+            chunk.append(piece)
             if counter == chunk_size:
                 yield chunk
                 chunk = []
@@ -154,12 +173,14 @@ def read_file_by_chunks(file_obj, chunk_size: int):
         logger.error(e, exc_info=True)
 
 
-async def push_file_on_cluster(uploaded_file: UploadFile):
+async def push_file_on_cluster(uploaded_file):
     try:
         async with ClientSession() as session:
-            file_obj = uploaded_file.file._file  # noqa
-            file_len, md5_hash = get_file_props(file_obj)
-            response = await create_config_and_filesystem(session, uploaded_file.filename, md5_hash)
+            # file_obj = uploaded_file.file._file  # noqa
+
+            file_len, md5_hash = get_file_props(uploaded_file)
+            # response = await create_config_and_filesystem(session, uploaded_file.filename, md5_hash)
+            response = await create_config_and_filesystem(session, uploaded_file, md5_hash)
             logger.info(f"Got a response from create_config_and_filesystem: {response}")
             data_nodes_list = await get_data_nodes_list(session)
             logger.info(f"Received data nodes list: {data_nodes_list}")
@@ -167,50 +188,56 @@ async def push_file_on_cluster(uploaded_file: UploadFile):
             row_limit = response.get("distribution")
             file_id = response.get("file_id")
             try:
-                file_name, file_ext = os.path.splitext(uploaded_file.filename)
+                # file_name, file_ext = os.path.splitext(uploaded_file.filename)
+                file_name, file_ext = os.path.splitext(uploaded_file)
 
-                num_of_workers = get_num_of_workers(file_obj, row_limit)
+                with open(uploaded_file, 'rU') as file_obj:
+                    csv_reader = csv.reader(file_obj, dialect=csv.excel_tab)
+                    num_of_workers = get_num_of_workers(uploaded_file, row_limit)
 
-                headers = next(file_obj, None)
+                    headers = next(file_obj, None)
+                    # headers = file_obj.readline()
+                    logger.info(f"{headers}")
 
-                if headers:
-                    headers = headers.decode("utf-8")
-                    file_len -= 1
+                    if headers:
+                        # headers = headers.decode("utf-8")
+                        file_len -= 1
 
-                mySemaphore = asyncio.Semaphore(num_of_workers)
+                    mySemaphore = asyncio.Semaphore(num_of_workers)
 
-                async def push_chunk_on_cluster(ip):
+                    async def push_chunk_on_cluster(ip):
 
-                    await mySemaphore.acquire()
-                    logger.info(f"Acquired {ip=}")
-                    ip = f"http://{ip}"  # noqa
-                    chunk = next(read_file_by_chunks(file_obj, row_limit), None)
-                    if chunk:
-                        async with ClientSession() as new_session:
-                            chunk_name = f"{uuid.uuid4()}{file_ext}"
-                            logger.info("before write")
-                            await write(new_session,
-                                        file_id,
-                                        chunk_name,
-                                        {"headers": headers, "items": json.dumps(chunk)},
-                                        ip)
-                            await refresh_table(new_session, file_id, ip, chunk_name)
-                    mySemaphore.release()
-                    logger.info("Released")
+                        await mySemaphore.acquire()
+                        # logger.info(f"Acquired {ip=}")
+                        ip = f"http://{ip}"  # noqa
+                        chunk = next(read_file_by_chunks(file_obj, row_limit), None)
+                        if chunk:
+                            async with ClientSession() as new_session:
+                                chunk_name = f"{uuid.uuid4()}{file_ext}"
+                                logger.info("before write")
+                                await write(new_session,
+                                            file_id,
+                                            chunk_name,
+                                            {"headers": headers, "items": json.dumps(chunk)},
+                                            ip)
+                                await refresh_table(new_session, file_id, ip, chunk_name)
+                        mySemaphore.release()
+                        # logger.info("Released")
 
-                tasks = []
-                num_iterations = file_len // row_limit
-                if file_len // row_limit != file_len / row_limit:
-                    num_iterations += 1
+                    tasks = []
+                    num_iterations = file_len // row_limit
+                    if file_len // row_limit != file_len / row_limit:
+                        num_iterations += 1
 
-                logger.info(f"{file_len=}, {row_limit=}, {num_iterations=}")
-                for i in range(num_iterations):
-                    logger.info(f"group: {i}")
-                    tasks.append(asyncio.ensure_future(push_chunk_on_cluster(next(data_nodes_list, None))))
+                    logger.info(f"{file_len=}, {row_limit=}, {num_iterations=}")
+                    for i in range(num_iterations):
+                        # logger.info(f"group: {i}")
+                        tasks.append(asyncio.ensure_future(push_chunk_on_cluster(next(data_nodes_list, None))))
 
-                await asyncio.gather(*tasks)
-            except Exception:
+                    await asyncio.gather(*tasks)
+            except Exception as e:
                 clear_data(file_id, True)
+                logger.error(e, exc_info=True)
             return file_id
     except Exception as e:
         logger.info("Caught exception!" + str(e))
@@ -221,12 +248,13 @@ def move_file_to_init_folder(file_name):
     return commands.MoveFileToInitFolderCommand(file_name).send_command()
 
 
-async def check_if_file_is_on_cluster(uploaded_file: UploadFile):
+async def check_if_file_is_on_cluster(uploaded_file):
     try:
         async with ClientSession() as session:
-            file_obj = uploaded_file.file._file  # noqa
-            file_len, md5_hash = get_file_props(file_obj)
-            resp = await commands.CheckIfFileIsOnCLuster(session, uploaded_file.filename, md5_hash).send_command_async()
+            # file_obj = uploaded_file.file._file  # noqa
+            file_len, md5_hash = get_file_props(uploaded_file)
+            # resp = await commands.CheckIfFileIsOnCLuster(session, uploaded_file.filename, md5_hash).send_command_async()
+            resp = await commands.CheckIfFileIsOnCLuster(session, uploaded_file, md5_hash).send_command_async()
         return resp
     except Exception as e:
         logger.info("Caught exception!" + str(e))
@@ -238,6 +266,7 @@ async def run_tasks(sql, files_info):
         parsed_sql = sql if type(sql) is dict else sql_parser.SQLParser.sql_parser(sql)
         field_delimiter = config_provider.field_delimiter
         from_file = parsed_sql['from']
+        logger.info(f"{from_file}, {type(from_file)}")
         if type(from_file) is dict:
             from_file = await run_tasks(from_file, files_info)
         if type(from_file) is tuple:
