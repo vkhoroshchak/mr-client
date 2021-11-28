@@ -117,7 +117,7 @@ class SQLParser:
             logger.error(e, exc_info=True)
 
     @staticmethod
-    def process_dict_item(diction):
+    def process_dict_item(diction):  # noqa: C901
         try:
             item_dict = {}
             if type(diction['value']) is not dict:
@@ -290,7 +290,7 @@ class SQLParser:
             logger.error(e, exc_info=True)
 
     @staticmethod
-    def sql_parser(sql_query):
+    def sql_parser(sql_query):  # noqa: C901
         try:
             if type(sql_query) is dict:
                 while 'value' in sql_query:
