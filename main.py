@@ -38,7 +38,8 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
             files_info[file.filename] = file_id["file_id"]
 
         logger.info("File(s) uploaded, starting map_reduce phase")
-        task.run_tasks(sql, files_info)
+        from_file = await task.run_tasks(sql, files_info)
+        logger.info(f"{from_file=}")
         end = time.time()
         print(end - start)
         return {"files_info": files_info}
