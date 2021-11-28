@@ -363,7 +363,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
                        f"{results['left']}) {results['operator']} (data_frame.{results['col'].title()} " \
                        f"{results['second_oper']} {results['right']})"
             else:
-                comm = f"data_frame.{results['left'].title()} {results['operator']} {results['right']}"
+                comm = f"data_frame.{results['left'].title()} {results['operator']} \"{results['right']}\""
             return comm
         except Exception as e:
             logger.info("Caught exception!" + str(e))
