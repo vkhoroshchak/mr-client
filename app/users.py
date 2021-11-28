@@ -77,7 +77,7 @@ class RedirectCookieAuthentication(CookieAuthentication):
     async def get_login_response(self, user: UserDB, response: Response):
         await super().get_login_response(user, response)
         response.status_code = status.HTTP_303_SEE_OTHER
-        response.headers["Location"] = "/report_history"
+        response.headers["Location"] = "/"
 
     async def get_logout_response(self, user: UserDB, response: Response):
         await super().get_logout_response(user, response)
@@ -101,4 +101,4 @@ fastapi_users = FastAPIUsers(
 )
 
 current_active_user = fastapi_users.current_user(active=True)
-optional_current_active_verified_user = fastapi_users.current_user(active=True, optional=True)
+optional_current_active_user = fastapi_users.current_user(active=True, optional=True)

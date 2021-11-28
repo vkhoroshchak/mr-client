@@ -1,10 +1,31 @@
-from fastapi import APIRouter, FastAPI
+from pathlib import Path
+
+from fastapi import APIRouter, Request
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from app import map_reduce, report_history, auth
 from app.users import fastapi_users, cookie_authentication
+from config.logger import client_logger
+
+logger = client_logger.get_logger(__name__)
+BASE_PATH = Path(__file__).parent
+
+TEMPLATES = Jinja2Templates(directory=str(BASE_PATH / "templates"))
 
 main_router = APIRouter()
+
+
+@main_router.get("/")
+async def get_main_page(request: Request):
+    return TEMPLATES.TemplateResponse(
+        "main_page.html",
+        {
+            "request": request,
+        }
+    )
+
 
 main_router.include_router(
     map_reduce.router,
