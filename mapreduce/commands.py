@@ -66,7 +66,8 @@ class CheckIfFileIsOnCLuster(BaseCommand):
     async def send_command_async(self, **kwargs):
         try:
             self.validate()
-            return await super().send_command_async(self.session, command_name='check_if_file_is_on_cluster', method="GET")
+            return await super().send_command_async(self.session, command_name='check_if_file_is_on_cluster',
+                                                    method="GET")
         except Exception as e:
             logger.info("Caught exception!" + str(e))
             logger.error(e, exc_info=True)
@@ -233,11 +234,11 @@ class GetResultOfKeyCommand(BaseCommand):
 
 class MapCommand(BaseCommand):
 
-    def __init__(self, is_mapper_in_file, mapper, file_id):
+    def __init__(self, is_mapper_in_file, mapper, file_id, session=None):
         self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id}
         self._set_mapper_from_file(mapper) if is_mapper_in_file else self._set_mapper(mapper)
 
-        super().__init__(command_body=self.command_body)
+        super().__init__(command_body=self.command_body, session=session)
 
     def _set_mapper_from_file(self, path):
         with open(path, 'rb') as file:
@@ -264,16 +265,25 @@ class MapCommand(BaseCommand):
             logger.info("Caught exception!" + str(e))
             logger.error(e, exc_info=True)
 
+    async def send_command_async(self, **kwargs):
+        try:
+            self.validate()
+            # return super().send_command(command_name='map')
+            return await super().send_command_async(session=self.session, command_name='map')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
+
 
 class ReduceCommand(BaseCommand):
 
-    def __init__(self, is_reducer_in_file, reducer, file_id, source_file):
+    def __init__(self, is_reducer_in_file, reducer, file_id, source_file, session=None):
         if isinstance(source_file, list):
             source_file = ",".join(source_file)
         self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id, "source_file": source_file}
         self._set_reducer_from_file(reducer) if is_reducer_in_file else self._set_reducer(reducer)
 
-        super().__init__(command_body=self.command_body)
+        super().__init__(command_body=self.command_body, session=session)
 
     def _set_reducer_from_file(self, path):
         with open(path, 'rb') as file:
@@ -296,6 +306,14 @@ class ReduceCommand(BaseCommand):
         try:
             self.validate()
             return super(ReduceCommand, self).send_command(command_name='reduce')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
+
+    async def send_command_async(self, **kwargs):
+        try:
+            self.validate()
+            return await super().send_command_async(session=self.session, command_name='reduce')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
             logger.error(e, exc_info=True)
@@ -348,12 +366,9 @@ class RefreshTableCommand(BaseCommand):
 
 class ShuffleCommand(BaseCommand):
 
-    def __init__(self, file_id):
-        self.command_body = {
-            "field_delimiter": field_delimiter,
-            "file_id": file_id,
-        }
-        super().__init__(command_body=self.command_body)
+    def __init__(self, file_id, session=None):
+        self.command_body = {"field_delimiter": field_delimiter, "file_id": file_id}
+        super().__init__(command_body=self.command_body, session=session)
 
     def validate(self):
         pass
@@ -362,6 +377,14 @@ class ShuffleCommand(BaseCommand):
         try:
             self.validate()
             return super().send_command(command_name='shuffle')
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
+
+    async def send_command_async(self, **kwargs):
+        try:
+            self.validate()
+            return await super().send_command_async(session=self.session, command_name='shuffle')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
             logger.error(e, exc_info=True)

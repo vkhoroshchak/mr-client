@@ -117,7 +117,7 @@ class SQLParser:
             logger.error(e, exc_info=True)
 
     @staticmethod
-    def process_dict_item(diction):
+    def process_dict_item(diction):  # noqa: C901
         try:
             item_dict = {}
             if type(diction['value']) is not dict:
@@ -290,7 +290,7 @@ class SQLParser:
             logger.error(e, exc_info=True)
 
     @staticmethod
-    def sql_parser(sql_query):
+    def sql_parser(sql_query):  # noqa: C901
         try:
             if type(sql_query) is dict:
                 while 'value' in sql_query:
@@ -363,7 +363,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
                        f"{results['left']}) {results['operator']} (data_frame.{results['col'].title()} " \
                        f"{results['second_oper']} {results['right']})"
             else:
-                comm = f"data_frame.{results['left'].title()} {results['operator']} {results['right']}"
+                comm = f"data_frame.{results['left'].title()} {results['operator']} \"{results['right']}\""
             return comm
         except Exception as e:
             logger.info("Caught exception!" + str(e))
@@ -393,8 +393,23 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
         """
             else:
                 return f"""
-    # data_frame = dd.read_csv(file_name, sep='{field_delimiter}')
+    # data_frame = dd.read_csv(file_name, sep='{field_delimiter}', encoding='latin-1')
     data_frame = dd.read_parquet(file_name, sep='{field_delimiter}')
+    # logger.info('include_headers: ' + str(include_headers))
+    # if include_headers:
+    #     data_frame = dd.read_parquet(file_name, sep='{field_delimiter}')
+    # else:
+    #     data_frame = dd.read_parquet(file_name, sep='{field_delimiter}', engine='pyarrow-dataset',
+    #                                 filters=[('key_column', '!=', 'key_column')])
+    # logger.info('before compute')
+    # logger.info(next(data_frame.compute()))
+    # logger.info(data_frame.loc[:, 'key_column'].compute())
+    # for x in data_frame[data_frame.columns[0]].compute():
+    #     logger.info(str(x))
+    # logger.info('after compute')
+    # logger.info('data_frame.key_column: ' + str(data_frame['key_column']))
+    # data_frame = data_frame[data_frame.key_column != 'key_column']
+    # data_frame = data_frame.drop(labels=[0])
         """
         except Exception as e:
             logger.info("Caught exception!" + str(e))
@@ -471,7 +486,7 @@ def custom_reducer(parsed_sql, field_delimiter):  # noqa: C901
 
     try:
         res = """
-def custom_reducer(file_name, dest):
+def custom_reducer(file_name, dest, include_headers=False):
     import dask.dataframe as dd
         """
 
@@ -486,7 +501,9 @@ def custom_reducer(file_name, dest):
         res += parse_orderby(parsed_sql.get("orderby"))
 
         res += f"""
-    data_frame.to_csv(dest, index=False, sep='{field_delimiter}')
+    # data_frame.to_csv(dest, index=False, sep='{field_delimiter}', single_file=False)
+    data_frame.to_csv(dest + '/' + os.path.splitext(os.path.basename(file_name))[0] + '.csv', index=False,
+                        sep='{field_delimiter}', single_file=True)
         """
 
         return res
