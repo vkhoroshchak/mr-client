@@ -1,6 +1,6 @@
 import base64
 import os
-import traceback
+
 from fastapi import status, HTTPException
 
 from config.config_provider import ConfigProvider
