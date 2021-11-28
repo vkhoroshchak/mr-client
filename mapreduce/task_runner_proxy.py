@@ -43,18 +43,26 @@ async def refresh_table(session, file_id, ip, segment_name):
     return await commands.RefreshTableCommand(session, file_id, ip, segment_name).send_command_async()
 
 
-def start_map_phase(is_mapper_in_file, mapper, file_id):
-    mc = commands.MapCommand(is_mapper_in_file, mapper, file_id)
-    return mc.send_command()
+# async def start_map_phase(session, is_mapper_in_file, mapper, file_id):
+#     return await commands.MapCommand(session, is_mapper_in_file, mapper, file_id).send_command_async()
+
+async def start_map_phase(is_mapper_in_file, mapper, file_id):
+    return commands.MapCommand(is_mapper_in_file, mapper, file_id).send_command()
 
 
-def start_shuffle_phase(file_id):
+# async def start_shuffle_phase(session, file_id):
+#     return await commands.ShuffleCommand(session, file_id).send_command_async()
+
+async def start_shuffle_phase(file_id):
     return commands.ShuffleCommand(file_id).send_command()
 
 
-def start_reduce_phase(is_reducer_in_file, reducer, file_id, source_file):
-    rc = commands.ReduceCommand(is_reducer_in_file, reducer, file_id, source_file)
-    return rc.send_command()
+# async def start_reduce_phase(session, is_reducer_in_file, reducer, file_id, source_file):
+#     return await commands.ReduceCommand(
+#     session, is_reducer_in_file, reducer, file_id, source_file).send_command_async()
+
+async def start_reduce_phase(is_reducer_in_file, reducer, file_id, source_file):
+    return commands.ReduceCommand(is_reducer_in_file, reducer, file_id, source_file).send_command()
 
 
 def send_info():
@@ -225,13 +233,13 @@ async def check_if_file_is_on_cluster(uploaded_file: UploadFile):
         logger.error(e, exc_info=True)
 
 
-def run_tasks(sql, files_info):
+async def run_tasks(sql, files_info):
     try:
         parsed_sql = sql if type(sql) is dict else sql_parser.SQLParser.sql_parser(sql)
         field_delimiter = config_provider.field_delimiter
         from_file = parsed_sql['from']
         if type(from_file) is dict:
-            from_file = run_tasks(from_file, files_info)
+            from_file = await run_tasks(from_file, files_info)
         if type(from_file) is tuple:
             reducer = sql_parser.custom_reducer(parsed_sql, field_delimiter)
 
@@ -241,21 +249,42 @@ def run_tasks(sql, files_info):
 
                 mapper = sql_parser.custom_mapper(key_col, own_select, field_delimiter)
                 file_id = files_info[file_name]
-                start_map_phase(
+                # async with ClientSession() as session:
+                logger.info("before map inside session")
+                map_phase = await start_map_phase(
+                    # session=session,
                     is_mapper_in_file=False,
                     mapper=mapper,
                     file_id=file_id,
                 )
-                start_shuffle_phase(file_id=file_id)
+                logger.info(str(map_phase))
+                logger.info("after map inside session")
+
+                logger.info("after map outside session")
+                # async with ClientSession() as session:
+                logger.info("before shuffle inside session")
+                shuffle_phase = await start_shuffle_phase(
+                    # session=session,
+                    file_id=file_id)
+                logger.info(str(shuffle_phase))
+                logger.info("after shuffle inside session")
+
+                logger.info("after shuffle outside session")
 
             file_name = from_file[0]
 
-            start_reduce_phase(
+            # async with ClientSession() as session:
+            logger.info("before reduce inside session")
+            reduce_phase = await start_reduce_phase(
+                # session=session,
                 is_reducer_in_file=False,
                 reducer=reducer,
                 file_id=files_info[file_name],
                 source_file=list(from_file)
             )
+            logger.info(str(reduce_phase))
+            logger.info("after reduce inside session")
+            logger.info("after reduce outside session")
             return file_name
 
         else:
@@ -268,19 +297,84 @@ def run_tasks(sql, files_info):
                 from_file = from_file[0]
 
             file_id = files_info[from_file]
-            start_map_phase(
+
+            # mySemaphore = asyncio.Semaphore(3)
+            # tasks = []
+            # await mySemaphore.acquire()
+            logger.info("before map")
+            map_phase = await start_map_phase(
                 is_mapper_in_file=False,
                 mapper=mapper,
-                file_id=file_id,
-            )
-            start_shuffle_phase(file_id=file_id)
-
-            start_reduce_phase(
+                file_id=file_id)
+            # mySemaphore.release()
+            logger.info(str(map_phase))
+            logger.info("after map")
+            # await mySemaphore.acquire()
+            logger.info("before shuffle")
+            shuffle_phase = await start_shuffle_phase(file_id=file_id)
+            logger.info(str(shuffle_phase))
+            logger.info("after shuffle")
+            logger.info("before reduce")
+            reduce_phase = await start_reduce_phase(
                 is_reducer_in_file=False,
                 reducer=reducer,
                 file_id=file_id,
-                source_file=from_file
-            )
+                source_file=from_file)
+            logger.info(str(reduce_phase))
+            logger.info("after reduce")
+
+            # async with ClientSession() as session:
+            #     loop = asyncio.get_event_loop()
+            #     logger.info("before map inside session")
+            #     loop.run_until_complete(start_map_phase(
+            #         session=session,
+            #         is_mapper_in_file=False,
+            #         mapper=mapper,
+            #         file_id=file_id
+            #     ))
+            # asyncio.run(start_map_phase(
+            #     # session=session,
+            #     is_mapper_in_file=False,
+            #     mapper=mapper,
+            #     file_id=file_id
+            # ))
+            # await start_map_phase(
+            #     session=session,
+            #     is_mapper_in_file=False,
+            #     mapper=mapper,
+            #     file_id=file_id
+            # )
+
+            # loop.close()
+
+            # async with ClientSession() as session:
+
+            # asyncio.run(start_shuffle_phase(
+            #     # session=session,
+            #     file_id=file_id
+            # ))
+            # await start_shuffle_phase(session=session, file_id=file_id)
+
+            # logger.info("return after shuffle and before reduce")
+            # return
+
+            # async with ClientSession() as session:
+
+            # asyncio.run(start_reduce_phase(
+            #     # session=session,
+            #     is_reducer_in_file=False,
+            #     reducer=reducer,
+            #     file_id=file_id,
+            #     source_file=from_file
+            # ))
+            # await start_reduce_phase(
+            #     session=session,
+            #     is_reducer_in_file=False,
+            #     reducer=reducer,
+            #     file_id=file_id,
+            #     source_file=from_file
+            # )
+
             return from_file
     except Exception as e:
         logger.info("Caught exception!" + str(e))
