@@ -1,16 +1,23 @@
 import os
 
 import requests
+from aiohttp import ClientSession
+from config.config_provider import ConfigProvider
 
-from config import config_provider
+config_provider = ConfigProvider(os.path.join('cluster_access.json'))
 
-address = "http://" + config_provider.ConfigProvider.get_arbiter_address(os.path.join('json', 'cluster_access.json'))
-access_token = config_provider.ConfigProvider.get_access_token(os.path.join('json', 'cluster_access.json'))
+address = f"http://{config_provider.arbiter_address}"
 
 
-def post(data, command, ip=address, ):
+async def send_request(session: ClientSession, data, command, ip=address, method: str = "POST"):
+    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+    async with session.request(url=f"{ip}/command/{command}", headers=headers, json=data, method=method) as resp:
+        return await resp.json(content_type=None)
+
+
+def post(data, command, ip=address):
     url = f"{ip}/command/{command}"
-    response = requests.post(url, json=data)
-    response.raise_for_status()
+    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+    response = requests.post(url, json=data, headers=headers)
 
     return response.json()
