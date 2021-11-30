@@ -82,38 +82,21 @@
                                     <div class="col-sm-12">
                                         <div class="statistics-details d-flex align-items-center justify-content-between">
                                             <div>
-                                                <p class="statistics-title">Bounce Rate</p>
-                                                <h3 class="rate-percentage">32.53%</h3>
+                                                <p class="statistics-title">Avg. upload file size</p>
+                                                <h3 class="rate-percentage">1.31GB</h3>
                                                 <p class="text-danger d-flex"><i
-                                                        class="mdi mdi-menu-down"></i><span>-0.5%</span></p>
+                                                        class="mdi mdi-menu-down"></i><span>-0.1GB</span></p>
                                             </div>
                                             <div>
-                                                <p class="statistics-title">Page Views</p>
-                                                <h3 class="rate-percentage">7,682</h3>
-                                                <p class="text-success d-flex"><i class="mdi mdi-menu-up"></i><span>+0.1%</span>
+                                                <p class="statistics-title">SQL Queries</p>
+                                                <h3 class="rate-percentage">12</h3>
+                                                <p class="text-success d-flex"><i
+                                                        class="mdi mdi-menu-up"></i><span>+10%</span>
                                                 </p>
                                             </div>
-                                            <div>
-                                                <p class="statistics-title">New Sessions</p>
-                                                <h3 class="rate-percentage">68.8</h3>
-                                                <p class="text-danger d-flex"><i
-                                                        class="mdi mdi-menu-down"></i><span>68.8</span></p>
-                                            </div>
                                             <div class="d-none d-md-block">
-                                                <p class="statistics-title">Avg. Time on Site</p>
-                                                <h3 class="rate-percentage">2m:35s</h3>
-                                                <p class="text-success d-flex"><i
-                                                        class="mdi mdi-menu-down"></i><span>+0.8%</span></p>
-                                            </div>
-                                            <div class="d-none d-md-block">
-                                                <p class="statistics-title">New Sessions</p>
-                                                <h3 class="rate-percentage">68.8</h3>
-                                                <p class="text-danger d-flex"><i
-                                                        class="mdi mdi-menu-down"></i><span>68.8</span></p>
-                                            </div>
-                                            <div class="d-none d-md-block">
-                                                <p class="statistics-title">Avg. Time on Site</p>
-                                                <h3 class="rate-percentage">2m:35s</h3>
+                                                <p class="statistics-title">Avg. Request Computing Time</p>
+                                                <h3 class="rate-percentage">8m:35s</h3>
                                                 <p class="text-success d-flex"><i
                                                         class="mdi mdi-menu-down"></i><span>+0.8%</span></p>
                                             </div>
@@ -128,10 +111,10 @@
                                                     <div class="card-body">
                                                         <div class="d-sm-flex justify-content-between align-items-start">
                                                             <div>
-                                                                <h4 class="card-title card-title-dash">Performance
-                                                                    Line Chart</h4>
-                                                                <h5 class="card-subtitle card-subtitle-dash">Lorem
-                                                                    Ipsum is simply dummy text of the printing</h5>
+                                                                <h4 class="card-title card-title-dash">Request Computing
+                                                                    Time Chart</h4>
+                                                                <h5 class="card-subtitle card-subtitle-dash">Comparison
+                                                                    between request processing time and file size</h5>
                                                             </div>
                                                             <div id="performance-line-legend"></div>
                                                         </div>
@@ -152,6 +135,32 @@
 
         </div>
     </div>
+    <table class="table table-dark table-striped">
+        <tr>
+            <th>File Name</th>
+            <th>File UUID</th>
+            <th>File Size</th>
+            <th>Status</th>
+            <th>Computing Time</th>
+            <th>Uploaded At</th>
+        </tr>
+        <tr>
+            <td class="table-primary"><strong>A.csv</strong></td>
+            <td class="table-primary"><strong>35577f05-2628-41aa-8519-6a45b350c85b</strong></td>
+            <td class="table-primary"><strong>3.7KB</strong></td>
+            <td class="table-primary" style="color: blue"><strong>Computing...</strong></td>
+            <td class="table-primary"><strong>-</strong></td>
+            <td class="table-primary"><strong>2021-11-11 22:29:43.297</strong></td>
+        </tr>
+        <tr>
+            <td class="table-primary"><strong>A.csv</strong></td>
+            <td class="table-primary"><strong>35577f05-2628-41aa-8519-6a45b350c85b</strong></td>
+            <td class="table-primary"><strong>3.7KB</strong></td>
+            <td class="table-primary" style="color: greenyellow"><strong>Completed</strong></td>
+            <td class="table-primary"><strong>0.027s</strong></td>
+            <td class="table-primary"><strong>2021-11-11 22:22:01.135</strong></td>
+        </tr>
+    </table>
 </div>
 <script src="{{ url_for('static', path='/vendors/js/vendor.bundle.base.js') }}"></script>
 <script src="{{ url_for('static', path='/vendors/chart.js/Chart.min.js')}}"></script>

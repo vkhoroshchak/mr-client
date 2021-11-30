@@ -88,7 +88,7 @@
   //Horizontal bar chart
   if ($('#ct-chart-horizontal-bar').length) {
     new Chartist.Bar('#ct-chart-horizontal-bar', {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      labels: ['Monn', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
       series: [
         [5, 4, 3, 7, 5, 10, 3],
         [3, 2, 9, 5, 4, 6, 4],
