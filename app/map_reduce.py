@@ -1,6 +1,5 @@
+import shutil
 import time
-from typing import List
-
 from fastapi import APIRouter
 from fastapi import (
     File,
@@ -9,6 +8,7 @@ from fastapi import (
     HTTPException,
 )
 from fastapi.responses import JSONResponse, FileResponse
+from typing import List
 
 import mapreduce.task_runner_proxy as task
 from config.logger import client_logger
@@ -38,7 +38,8 @@ async def run_map_reduce(files: List[UploadFile] = File(...), sql: str = Body(..
             files_info[file.filename] = file_id["file_id"]
 
         logger.info("File(s) uploaded, starting map_reduce phase")
-        task.run_tasks(sql, files_info)
+        from_file = await task.run_tasks(sql, files_info)
+        logger.info(f"{from_file=}")
         end = time.time()
         print(end - start)
         return {"files_info": files_info}
@@ -60,13 +61,17 @@ async def remove_file_from_cluster(file_id: str, clear_all: bool):
 @router.post("/push-file-on-cluster", response_description="The file was successfully uploaded to the cluster!")
 async def push_file_on_cluster(file: UploadFile = File(...)):
     try:
-        is_file_on_cluster_resp = await task.check_if_file_is_on_cluster(file)
+        file_obj = file.file._file  # noqa
+        copied_file = file.filename
+        with open(copied_file, "wb+") as buf:
+            shutil.copyfileobj(file_obj, buf)
+        is_file_on_cluster_resp = await task.check_if_file_is_on_cluster(copied_file)
         is_file_on_cluster = is_file_on_cluster_resp.get("is_file_on_cluster")
         file_id = is_file_on_cluster_resp.get("file_id")
         if is_file_on_cluster:
             logger.info("File already exists on the cluster! Not pushing again...")
         else:
-            file_id = await task.push_file_on_cluster(file)
+            file_id = await task.push_file_on_cluster(copied_file)
         return {"file_id": file_id}
     except Exception as e:
         logger.info("Caught exception!" + str(e))
