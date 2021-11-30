@@ -1,5 +1,4 @@
 import asyncio
-import codecs
 import csv
 import hashlib
 import io
@@ -8,11 +7,9 @@ import math
 import os
 import pandas as pd
 import psutil
-import shutil
 import sys
 import uuid
 from aiohttp import ClientSession
-from fastapi import UploadFile
 from itertools import cycle
 
 import parsers.sql_parser as sql_parser
@@ -117,7 +114,6 @@ def get_file_props(uploaded_file):
         # file.seek(0)
         with open(uploaded_file, 'rU') as file_obj:
             csv_reader = csv.reader(file_obj, dialect=csv.excel_tab)
-        # csv_reader = csv.reader(codecs.iterdecode(file, 'utf-8'), dialect=csv.excel_tab)
             content = ''
             i = 0
             for row in csv_reader:
@@ -125,7 +121,7 @@ def get_file_props(uploaded_file):
                 i += 1
             hash_md5 = hashlib.md5()
             hash_md5.update(content.encode('utf-8'))
-            logger.info(f"{i=}, {hash_md5.hexdigest()=}")
+            # logger.info(f"{i=}, {hash_md5.hexdigest()=}")
         # if i == 1:
         #     i = len(content)
         # logger.info(f"{len(content)=}, {hash_md5.hexdigest()=}, {i=}")
@@ -144,7 +140,7 @@ def get_num_of_workers(uploaded_file, chunk_size):
         logger.info(f"Chunk size in MB: {chunk_size / 1000000}")
 
         num_of_workers = math.floor(free_ram / chunk_size * 0.2)
-        # file_obj.seek(0)
+        # uploaded_file.seek(0)
         logger.info(f"Num of workers: {num_of_workers}")
         return num_of_workers
     except Exception as e:
@@ -159,7 +155,7 @@ def read_file_by_chunks(uploaded_file, chunk_size: int):
         logger.info("read_file_by_chunks")
         # for piece in open(uploaded_file):
         for piece in uploaded_file:
-            logger.info(f"{counter=}, {chunk_size=}")
+            # logger.info(f"{counter=}, {chunk_size=}, {piece=}")
             counter += 1
             # chunk.append(piece.decode("utf-8"))
             chunk.append(piece)
@@ -168,6 +164,7 @@ def read_file_by_chunks(uploaded_file, chunk_size: int):
                 chunk = []
                 counter = 0
         yield chunk
+        # uploaded_file.seek(0)
     except Exception as e:
         logger.info("Caught exception!" + str(e))
         logger.error(e, exc_info=True)
@@ -193,11 +190,12 @@ async def push_file_on_cluster(uploaded_file):
 
                 with open(uploaded_file, 'rU') as file_obj:
                     csv_reader = csv.reader(file_obj, dialect=csv.excel_tab)
-                    num_of_workers = get_num_of_workers(uploaded_file, row_limit)
+                    num_of_workers = get_num_of_workers(csv_reader, row_limit)
+                    file_obj.seek(0)
 
-                    headers = next(file_obj, None)
+                    headers = next(csv_reader, None)
                     # headers = file_obj.readline()
-                    logger.info(f"{headers}")
+                    logger.info(f"{headers=}")
 
                     if headers:
                         # headers = headers.decode("utf-8")
@@ -210,7 +208,7 @@ async def push_file_on_cluster(uploaded_file):
                         await mySemaphore.acquire()
                         # logger.info(f"Acquired {ip=}")
                         ip = f"http://{ip}"  # noqa
-                        chunk = next(read_file_by_chunks(file_obj, row_limit), None)
+                        chunk = next(read_file_by_chunks(csv_reader, row_limit), None)
                         if chunk:
                             async with ClientSession() as new_session:
                                 chunk_name = f"{uuid.uuid4()}{file_ext}"

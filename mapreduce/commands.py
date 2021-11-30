@@ -357,7 +357,7 @@ class RefreshTableCommand(BaseCommand):
     async def send_command_async(self, **kwargs):
         try:
             self.validate()
-            logger.info(f"Refresh table {self.command_body}")
+            # logger.info(f"Refresh table {self.command_body}")
             return await super().send_command_async(self.session, 'refresh_table')
         except Exception as e:
             logger.info("Caught exception!" + str(e))
