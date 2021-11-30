@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.db import ReportHistoryManager
 from app.models import User, ReportRecord, CreateReportRecord
-from app.users import current_active_user, optional_current_active_verified_user
+from app.users import current_active_user, optional_current_active_user
 from config.logger import client_logger
 
 logger = client_logger.get_logger(__name__)
@@ -19,10 +19,10 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[ReportRecord])
-async def get_report_history(request: Request, user: User = Depends(optional_current_active_verified_user)):
+async def get_report_history(request: Request, user: User = Depends(optional_current_active_user)):
     if user:
         return TEMPLATES.TemplateResponse(
-            "index.html",
+            "report_history.html",
             {
                 "request": request,
                 "report_history": await ReportHistoryManager(user).retrieve_records(),

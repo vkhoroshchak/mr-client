@@ -11,10 +11,10 @@
       saleGradientBg2.addColorStop(0, 'rgba(0, 208, 255, 0.19)');
       saleGradientBg2.addColorStop(1, 'rgba(0, 208, 255, 0.03)');
       var salesTopData = {
-          labels: ["SUN","sun", "MON", "mon", "TUE","tue", "WED", "wed", "THU", "thu", "FRI", "fri", "SAT"],
+          labels: ["100MB","100mb", "500MB", "500mb", "1GB","1gb", "3GB", "3gb", "5GB", "5gb", "8GB", "8gb", "12GB"],
           datasets: [{
-              label: 'This week',
-              data: [50, 110, 60, 290, 200, 115, 130, 170, 90, 210, 240, 280, 200],
+              label: 'Processing Time in seconds',
+              data: [3, 3, 6.4, 6.4, 20.1, 20.1, 46.7, 46.7, 141, 141, 175.3, 175.3, 210.5],
               backgroundColor: saleGradientBg,
               borderColor: [
                   '#1F3BB3',
@@ -27,11 +27,11 @@
               pointBackgroundColor: ['#1F3BB3)', '#1F3BB3', '#1F3BB3', '#1F3BB3','#1F3BB3)', '#1F3BB3', '#1F3BB3', '#1F3BB3','#1F3BB3)', '#1F3BB3', '#1F3BB3', '#1F3BB3','#1F3BB3)'],
               pointBorderColor: ['#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff',],
           },{
-            label: 'Last week',
-            data: [30, 150, 190, 250, 120, 150, 130, 20, 30, 15, 40, 95, 180],
+
+            data: [3, 3, 6.4, 6.4, 20.1, 20.1, 46.7, 46.7, 141, 141, 175.3, 175.3, 210.5],
             backgroundColor: saleGradientBg2,
             borderColor: [
-                '#52CDFF',
+                '#1F3BB3',
             ],
             borderWidth: 1.5,
             fill: true, // 3: no fill
@@ -117,7 +117,7 @@
       saleGradientBg2.addColorStop(0, 'rgba(0, 208, 255, 0.19)');
       saleGradientBg2.addColorStop(1, 'rgba(34, 36, 55, 0.2)');
       var salesTopDataDark = {
-          labels: ["SUN","sun", "MON", "mon", "TUE","tue", "WED", "wed", "THU", "thu", "FRI", "fri", "SAT"],
+          labels: ["SUN","sun", "MONN", "monn", "TUE","tue", "WED", "wed", "THU", "thu", "FRI", "fri", "SAT"],
           datasets: [{
               label: '# of Votes',
               data: [50, 110, 60, 290, 200, 115, 130, 170, 90, 210, 240, 280, 200],

@@ -39,7 +39,7 @@ async def signup(request: Request,
         except (UserAlreadyExists, InvalidPasswordException):
             return templates.TemplateResponse("signup.html", form.__dict__)
         else:
-            return RedirectResponse(url="/report_history", status_code=status.HTTP_302_FOUND)
+            return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
 
 
 @router.get("/signin/")
