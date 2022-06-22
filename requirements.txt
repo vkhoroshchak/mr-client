@@ -26,7 +26,7 @@ mo-logs==4.20.21059
 moz-sql-parser==4.21.21059
 multidict==5.1.0
 nodeenv==1.6.0
-numpy==1.20.2
+numpy==1.22.0
 pandas==1.2.4
 partd==1.2.0
 pre-commit==2.12.1
